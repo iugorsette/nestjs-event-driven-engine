@@ -1,9 +1,12 @@
+import { RedisOptions } from 'ioredis';
+
 export type AppEnvironment = 'development' | 'test' | 'production';
 
 export interface AppConfig {
   environment: AppEnvironment;
   port: number;
   corsOrigins: string[];
+  redis: RedisOptions;
 }
 
 const validEnvironments: AppEnvironment[] = [
@@ -57,6 +60,59 @@ function parseCorsOrigins(value: string | undefined): string[] {
   });
 }
 
+function parseRedisUrl(
+  value: string | undefined,
+  appEnvironment: AppEnvironment,
+): RedisOptions {
+  const redisUrl = value ?? 'redis://localhost:6379/0';
+  let parsed: URL;
+
+  try {
+    parsed = new URL(redisUrl);
+  } catch {
+    throw new Error('REDIS_URL must be a valid redis:// or rediss:// URL.');
+  }
+
+  if (
+    !['redis:', 'rediss:'].includes(parsed.protocol) ||
+    !parsed.hostname ||
+    parsed.search !== '' ||
+    parsed.hash !== '' ||
+    !/^\/?\d*$/.test(parsed.pathname)
+  ) {
+    throw new Error('REDIS_URL must be a valid redis:// or rediss:// URL.');
+  }
+
+  if (appEnvironment === 'production' && parsed.protocol !== 'rediss:') {
+    throw new Error('REDIS_URL must use TLS (rediss://) in production.');
+  }
+
+  const database = parsed.pathname.replace(/^\//, '');
+  const port = parsed.port === '' ? 6379 : Number(parsed.port);
+  const db = database === '' ? 0 : Number(database);
+
+  if (
+    !Number.isInteger(port) ||
+    port < 1 ||
+    port > 65535 ||
+    !Number.isSafeInteger(db) ||
+    db < 0
+  ) {
+    throw new Error('REDIS_URL contains an invalid port or database number.');
+  }
+
+  return {
+    host: parsed.hostname,
+    port,
+    db,
+    maxRetriesPerRequest: 1,
+    enableOfflineQueue: false,
+    ...(parsed.username ? { username: decodeURIComponent(parsed.username) } : {}),
+    ...(parsed.password ? { password: decodeURIComponent(parsed.password) } : {}),
+    ...(parsed.protocol === 'rediss:' ? { tls: {} } : {}),
+  };
+}
+
 export function loadAppConfig(
   environment: NodeJS.ProcessEnv = process.env,
 ): AppConfig {
@@ -68,9 +124,12 @@ export function loadAppConfig(
     );
   }
 
+  const appEnvironment = configuredEnvironment as AppEnvironment;
+
   return {
-    environment: configuredEnvironment as AppEnvironment,
+    environment: appEnvironment,
     port: parsePort(environment.PORT),
     corsOrigins: parseCorsOrigins(environment.CORS_ORIGINS),
+    redis: parseRedisUrl(environment.REDIS_URL, appEnvironment),
   };
 }

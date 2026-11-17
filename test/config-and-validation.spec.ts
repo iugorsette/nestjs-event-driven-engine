@@ -25,6 +25,13 @@ describe('application configuration', () => {
       environment: 'development',
       port: 3000,
       corsOrigins: [],
+      redis: {
+        host: 'localhost',
+        port: 6379,
+        db: 0,
+        maxRetriesPerRequest: 1,
+        enableOfflineQueue: false,
+      },
     });
   });
 
@@ -34,11 +41,22 @@ describe('application configuration', () => {
         NODE_ENV: 'production',
         PORT: '8080',
         CORS_ORIGINS: 'https://console.example.com, http://localhost:3001',
+        REDIS_URL: 'rediss://engine:secret@redis.example.com:6380/2',
       }),
       {
         environment: 'production',
         port: 8080,
         corsOrigins: ['https://console.example.com', 'http://localhost:3001'],
+        redis: {
+          host: 'redis.example.com',
+          port: 6380,
+          db: 2,
+          username: 'engine',
+          password: 'secret',
+          tls: {},
+          maxRetriesPerRequest: 1,
+          enableOfflineQueue: false,
+        },
       },
     );
   });
@@ -60,6 +78,23 @@ describe('application configuration', () => {
       'https://user:password@example.com',
     ]) {
       assert.throws(() => loadAppConfig({ CORS_ORIGINS: origin }), /CORS_ORIGINS/);
+    }
+  });
+
+  it('requires TLS for production Redis connections', () => {
+    assert.throws(
+      () => loadAppConfig({ NODE_ENV: 'production' }),
+      /REDIS_URL must use TLS/,
+    );
+  });
+
+  it('rejects invalid Redis URL schemes and database paths', () => {
+    for (const REDIS_URL of [
+      'http://localhost:6379',
+      'redis://localhost/not-a-db',
+      'redis://localhost:6379/0?timeout=10',
+    ]) {
+      assert.throws(() => loadAppConfig({ REDIS_URL }), /REDIS_URL/);
     }
   });
 });

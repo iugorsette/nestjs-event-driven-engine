@@ -4,6 +4,7 @@ dist/
 dist-test/
 coverage/
 .nestjs/
+redis-data/
 
 # Local configuration and secrets
 .env

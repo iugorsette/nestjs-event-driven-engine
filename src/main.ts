@@ -9,6 +9,7 @@ const logger = new StructuredLogger();
 async function bootstrap(): Promise<void> {
   const config = loadAppConfig();
   const app = await createApp(config, logger);
+  app.enableShutdownHooks();
   await app.listen(config.port, '0.0.0.0');
 }
 

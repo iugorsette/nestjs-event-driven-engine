@@ -1,13 +1,27 @@
 import 'reflect-metadata';
 import * as assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
-import { INestApplication, Module } from '@nestjs/common';
-import { AppModule } from '../src/app.module';
+import {
+  INestApplication,
+  MiddlewareConsumer,
+  Module,
+  NestModule,
+} from '@nestjs/common';
+import { AppController } from '../src/app.controller';
 import { loadAppConfig } from '../src/config/app-config';
 import { createApp } from '../src/create-app';
+import { RequestContextMiddleware } from '../src/observability/request-context.middleware';
+import { StructuredLogger } from '../src/observability/structured-logger';
 
-@Module({ imports: [AppModule] })
-class TestAppModule {}
+@Module({
+  controllers: [AppController],
+  providers: [StructuredLogger, RequestContextMiddleware],
+})
+class TestAppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(RequestContextMiddleware).forRoutes('*');
+  }
+}
 
 describe('HTTP application', () => {
   let app: INestApplication;

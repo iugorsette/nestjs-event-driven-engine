@@ -1,14 +1,19 @@
+import { Inject, Injectable } from '@nestjs/common';
 import { IngestEventDto } from '../dto/ingest-event.dto';
 import { fingerprintEvent } from '../event-fingerprint';
-import { EventAdmissionPort } from './event-admission.port';
+import { EVENT_ADMISSION_PORT, EventAdmissionPort } from './event-admission.port';
 
 export interface AdmitEventResult {
   eventId: string;
   outcome: 'accepted' | 'conflict';
 }
 
+@Injectable()
 export class AdmitEventUseCase {
-  constructor(private readonly admission: EventAdmissionPort) {}
+  constructor(
+    @Inject(EVENT_ADMISSION_PORT)
+    private readonly admission: EventAdmissionPort,
+  ) {}
 
   async execute(event: IngestEventDto): Promise<AdmitEventResult> {
     const fingerprint = fingerprintEvent(event);
