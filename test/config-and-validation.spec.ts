@@ -7,6 +7,8 @@ import {
   MAX_REQUEST_BODY_BYTES,
 } from '../src/create-app';
 import { IngestEventDto } from '../src/events/dto/ingest-event.dto';
+import { AdmitEventUseCase } from '../src/events/application/admit-event.use-case';
+import { EventAdmissionPort } from '../src/events/application/event-admission.port';
 import {
   classifyEventSubmission,
   fingerprintEvent,
@@ -160,6 +162,47 @@ describe('event ingestion contract', () => {
         acceptedFingerprint,
       ),
       'conflict',
+    );
+  });
+});
+
+describe('admit event use case', () => {
+  it('normalizes a duplicate retry to the original accepted result', async () => {
+    const acceptedFingerprints = new Map<string, string>();
+    const admissionPort: EventAdmissionPort = {
+      async admit(event, fingerprint) {
+        const existing = acceptedFingerprints.get(event.eventId);
+        if (existing === undefined) {
+          acceptedFingerprints.set(event.eventId, fingerprint);
+          return 'accepted';
+        }
+
+        return existing === fingerprint ? 'duplicate' : 'conflict';
+      },
+    };
+    const useCase = new AdmitEventUseCase(admissionPort);
+    const event = {
+      eventId: '5fd55d2a-4506-4cd5-9314-2f0a00a43167',
+      eventType: 'order.created',
+      schemaVersion: 1,
+      occurredAt: '2026-11-17T12:30:00Z',
+      payload: { orderId: 'ord-123', totalCents: 4200 },
+    } as IngestEventDto;
+
+    assert.deepEqual(await useCase.execute(event), {
+      eventId: event.eventId,
+      outcome: 'accepted',
+    });
+    assert.deepEqual(await useCase.execute(event), {
+      eventId: event.eventId,
+      outcome: 'accepted',
+    });
+    assert.deepEqual(
+      await useCase.execute({
+        ...event,
+        payload: { ...event.payload, totalCents: 5000 },
+      }),
+      { eventId: event.eventId, outcome: 'conflict' },
     );
   });
 });
