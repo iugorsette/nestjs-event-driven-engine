@@ -1,6 +1,8 @@
 import { Injectable, OnModuleDestroy, ServiceUnavailableException } from '@nestjs/common';
 import { ThrottlerStorage } from '@nestjs/throttler';
 import { createHash } from 'node:crypto';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import Redis, { RedisOptions } from 'ioredis';
 
 interface ThrottlerStorageRecord {
@@ -10,40 +12,46 @@ interface ThrottlerStorageRecord {
   timeToBlockExpire: number;
 }
 
-const incrementScript = `
-local blockedTtl = redis.call('PTTL', KEYS[2])
-if blockedTtl > 0 then
-  local hits = tonumber(redis.call('GET', KEYS[1]) or '0')
-  local hitsTtl = math.max(redis.call('PTTL', KEYS[1]), 0)
-  return { hits, hitsTtl, 1, blockedTtl }
-end
+interface RedisWithThrottleCommand extends Redis {
+  incrementThrottle(
+    hitsKey: string,
+    blockedKey: string,
+    ttl: number,
+    limit: number,
+    blockDuration: number,
+  ): Promise<number[]>;
+}
 
-local hits = redis.call('INCR', KEYS[1])
-local hitsTtl = redis.call('PTTL', KEYS[1])
-if hits == 1 or hitsTtl < 0 then
-  redis.call('PEXPIRE', KEYS[1], ARGV[1])
-  hitsTtl = tonumber(ARGV[1])
-end
+function loadIncrementThrottleScript(): string {
+  const relativePath = join('scripts', 'increment-throttle.lua');
+  const compiledPath = join(__dirname, relativePath);
+  const sourcePath = join(
+    process.cwd(),
+    'src',
+    'security',
+    'rate-limiting',
+    relativePath,
+  );
+  const scriptPath = existsSync(compiledPath) ? compiledPath : sourcePath;
 
-local isBlocked = 0
-local timeToBlockExpire = 0
-if hits > tonumber(ARGV[2]) then
-  redis.call('SET', KEYS[2], '1', 'PX', ARGV[3])
-  isBlocked = 1
-  timeToBlockExpire = tonumber(ARGV[3])
-end
+  return readFileSync(scriptPath, 'utf8');
+}
 
-return { hits, hitsTtl, isBlocked, timeToBlockExpire }
-`;
+const incrementScript = loadIncrementThrottleScript();
 
 @Injectable()
 export class RedisThrottlerStorage
   implements ThrottlerStorage, OnModuleDestroy
 {
-  private readonly redis: Redis;
+  private readonly redis: RedisWithThrottleCommand;
 
   constructor(options: RedisOptions) {
-    this.redis = new Redis(options);
+    const redis = new Redis(options);
+    redis.defineCommand('incrementThrottle', {
+      numberOfKeys: 2,
+      lua: incrementScript,
+    });
+    this.redis = redis as RedisWithThrottleCommand;
   }
 
   async increment(
@@ -59,15 +67,13 @@ export class RedisThrottlerStorage
     const keyPrefix = `hteda:throttle:{${digest}}`;
 
     try {
-      const result = (await this.redis.eval(
-        incrementScript,
-        2,
+      const result = await this.redis.incrementThrottle(
         `${keyPrefix}:hits`,
         `${keyPrefix}:blocked`,
         ttl,
         limit,
         blockDuration,
-      )) as number[];
+      );
 
       if (!Array.isArray(result) || result.length !== 4) {
         throw new Error('Redis returned an invalid throttle record.');
