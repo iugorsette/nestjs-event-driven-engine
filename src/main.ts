@@ -1,11 +1,14 @@
+import 'dotenv/config';
 import 'reflect-metadata';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import helmet from 'helmet';
 import hpp from 'hpp';
 import { AppModule } from './app.module';
+import { loadAppConfig } from './config/app-config';
 
 async function bootstrap(): Promise<void> {
+  const config = loadAppConfig();
   const app = await NestFactory.create(AppModule, { rawBody: false });
 
   app.use(helmet());
@@ -18,21 +21,21 @@ async function bootstrap(): Promise<void> {
     }),
   );
 
-  const origins = (process.env.CORS_ORIGINS ?? '')
-    .split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean);
-
-  if (origins.length > 0) {
+  if (config.corsOrigins.length > 0) {
     app.enableCors({
-      origin: origins,
+      origin: config.corsOrigins,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key'],
     });
   }
 
-  const port = Number(process.env.PORT ?? 3000);
-  await app.listen(port, '0.0.0.0');
+  await app.listen(config.port, '0.0.0.0');
 }
 
-void bootstrap();
+void bootstrap().catch((error: unknown) => {
+  const message = error instanceof Error ? error.message : 'Unknown startup error';
+  process.stderr.write(
+    `${JSON.stringify({ level: 'fatal', event: 'startup.failed', message })}\n`,
+  );
+  process.exitCode = 1;
+});

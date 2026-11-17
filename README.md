@@ -4,7 +4,7 @@ Um projeto incremental de um motor de processamento de eventos com NestJS e Type
 
 ## Estado atual
 
-A primeira etapa cria a base executável da API: bootstrap NestJS, endpoint `/health`, cabeçalhos Helmet, proteção HPP, validação global estrita e CORS por allowlist configurável. Ainda não há fila, Redis, persistência ou rate limiting; essas capacidades entram em etapas posteriores, com decisões e limites documentados junto ao código.
+A base da API inclui bootstrap NestJS, endpoint `/health`, cabeçalhos Helmet, proteção HPP, validação global estrita e CORS por allowlist configurável. A configuração é validada antes de abrir a porta e os valores de `.env` são carregados na inicialização. Ainda não há fila, Redis, persistência ou rate limiting; essas capacidades entram em etapas posteriores, com decisões e limites documentados junto ao código.
 
 ## Requisitos
 
@@ -25,11 +25,11 @@ Verifique `http://localhost:3000/health`; a resposta esperada é `{"status":"ok"
 
 | Variável | Descrição | Padrão |
 | --- | --- | --- |
-| `NODE_ENV` | Ambiente de execução | `development` |
-| `PORT` | Porta HTTP | `3000` |
-| `CORS_ORIGINS` | Origens permitidas separadas por vírgula | `http://localhost:3001` no `.env.example` |
+| `NODE_ENV` | `development`, `test` ou `production` | `development` |
+| `PORT` | Porta HTTP (inteiro de 1 a 65535) | `3000` |
+| `CORS_ORIGINS` | Origens HTTP(S) exatas, separadas por vírgula e sem caminho | vazio |
 
-Se `CORS_ORIGINS` estiver vazio, CORS fica desativado. Em produção, configure somente origens confiáveis.
+Se `CORS_ORIGINS` estiver vazio, CORS fica desativado. Valores inválidos interrompem a inicialização com uma mensagem estruturada. Em produção, configure somente origens confiáveis.
 
 ## Plano do projeto
 
