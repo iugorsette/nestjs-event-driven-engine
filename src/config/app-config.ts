@@ -8,7 +8,10 @@ export interface AppConfig {
   corsOrigins: string[];
   redis: RedisOptions;
   workerConcurrency: number;
+  ingestApiKey: string | undefined;
 }
+
+export const APP_CONFIG = Symbol('APP_CONFIG');
 
 const validEnvironments: AppEnvironment[] = [
   'development',
@@ -45,6 +48,17 @@ function parseWorkerConcurrency(value: string | undefined): number {
   }
 
   return concurrency;
+}
+
+function parseIngestApiKey(
+  value: string | undefined,
+): string | undefined {
+  const apiKey = value === '' ? undefined : value;
+  if (apiKey !== undefined && !/^[\x21-\x7E]{32,256}$/.test(apiKey)) {
+    throw new Error('INGEST_API_KEY must contain 32 to 256 printable ASCII characters.');
+  }
+
+  return apiKey;
 }
 
 function parseCorsOrigins(value: string | undefined): string[] {
@@ -147,5 +161,13 @@ export function loadAppConfig(
     corsOrigins: parseCorsOrigins(environment.CORS_ORIGINS),
     redis: parseRedisUrl(environment.REDIS_URL, appEnvironment),
     workerConcurrency: parseWorkerConcurrency(environment.WORKER_CONCURRENCY),
+    ingestApiKey: parseIngestApiKey(environment.INGEST_API_KEY),
   };
+}
+
+/** The API needs producer credentials; standalone workers do not. */
+export function assertApiConfiguration(config: AppConfig): void {
+  if (config.environment === 'production' && !config.ingestApiKey) {
+    throw new Error('INGEST_API_KEY is required for the API in production.');
+  }
 }

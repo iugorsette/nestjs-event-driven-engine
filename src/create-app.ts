@@ -4,7 +4,7 @@ import { json } from 'express';
 import helmet from 'helmet';
 import * as hpp from 'hpp';
 import { AppModule } from './app.module';
-import { AppConfig } from './config/app-config';
+import { AppConfig, assertApiConfiguration } from './config/app-config';
 import { StructuredLogger } from './observability/structured-logger';
 
 export const MAX_REQUEST_BODY_BYTES = 256 * 1024;
@@ -22,6 +22,8 @@ export async function createApp(
   logger: LoggerService | false = new StructuredLogger(),
   rootModule: Type<unknown> = AppModule,
 ) {
+  assertApiConfiguration(config);
+
   const app = await NestFactory.create(rootModule, {
     logger,
     bodyParser: false,

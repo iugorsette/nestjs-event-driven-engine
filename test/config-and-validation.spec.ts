@@ -26,6 +26,7 @@ describe('application configuration', () => {
       port: 3000,
       corsOrigins: [],
       workerConcurrency: 5,
+      ingestApiKey: undefined,
       redis: {
         host: 'localhost',
         port: 6379,
@@ -43,12 +44,14 @@ describe('application configuration', () => {
         PORT: '8080',
         CORS_ORIGINS: 'https://console.example.com, http://localhost:3001',
         REDIS_URL: 'rediss://engine:secret@redis.example.com:6380/2',
+        INGEST_API_KEY: '01234567890123456789012345678901',
       }),
       {
         environment: 'production',
         port: 8080,
         corsOrigins: ['https://console.example.com', 'http://localhost:3001'],
         workerConcurrency: 5,
+        ingestApiKey: '01234567890123456789012345678901',
         redis: {
           host: 'redis.example.com',
           port: 6380,
