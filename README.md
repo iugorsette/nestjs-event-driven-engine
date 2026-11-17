@@ -21,6 +21,8 @@ npm run start:dev
 
 Verifique `http://localhost:3000/health`; a resposta esperada é `{"status":"ok"}`.
 
+Para executar a suíte automatizada, use `npm test`. Ela compila o TypeScript dos testes em uma pasta temporária ignorada pelo Git e usa o test runner nativo do Node.
+
 ## Configuração
 
 | Variável | Descrição | Padrão |
@@ -36,6 +38,7 @@ Se `CORS_ORIGINS` estiver vazio, CORS fica desativado. Valores inválidos interr
 - [Visão geral e mapa da documentação](docs/README.md)
 - [Arquitetura e decisões técnicas](docs/architecture.md)
 - [Modelo de segurança e estado das proteções](docs/security.md)
+- [Como executar e interpretar os testes](docs/testing.md)
 - [Roadmap de implementação](docs/roadmap.md)
 - [Catálogo de features atuais e planejadas](docs/features/README.md)
 

@@ -6,6 +6,7 @@ Esta documentação explica o que o sistema faz hoje, por que as decisões foram
 
 - [Arquitetura e decisões técnicas](architecture.md): fluxo atual, limites e princípios de evolução.
 - [Segurança](security.md): controles presentes, ameaças mitigadas e lacunas conhecidas.
+- [Testes](testing.md): comandos disponíveis e o comportamento coberto pela suíte.
 - [Roadmap](roadmap.md): etapas de desenvolvimento e critérios para considerar cada uma pronta.
 - [Features](features/README.md): documentação funcional das capacidades atuais e planejadas.
 

@@ -7,12 +7,12 @@ As etapas são incrementais. Cada uma deve resultar em código, documentação, 
 - NestJS e TypeScript com build, lint e estrutura mínima.
 - `GET /health`, Helmet, HPP, validação global estrita e CORS configurável.
 
-## 2. Configuração e observabilidade — em andamento
+## 2. Configuração e qualidade — concluída
 
 - Validação de ambiente e carregamento de `.env` — implementado.
 - Logs JSON e correlação por requisição — implementado.
-- Testes de configuração, bootstrap e endpoint de health — planejado.
-- Separar liveness e readiness antes de introduzir dependências externas.
+- Testes de configuração, DTO validation, bootstrap, endpoint de health, request ID e headers — implementado.
+- Separar liveness e readiness quando o serviço passar a depender de infraestrutura externa.
 
 ## 3. Contrato de ingestão — planejado
 

@@ -69,6 +69,7 @@ Quando a ingestão for criada, controller, aplicação e domínio devem depender
 | Caminho | Responsabilidade |
 | --- | --- |
 | `src/main.ts` | Carrega ambiente, configura Nest, HTTP security middleware, validação e CORS. |
+| `src/create-app.ts` | Monta a aplicação HTTP para execução e testes com a mesma configuração. |
 | `src/config/app-config.ts` | Valida e transforma variáveis de ambiente. |
 | `src/app.module.ts` | Registra controllers e middleware de contexto. |
 | `src/app.controller.ts` | Endpoint mínimo de health. |
