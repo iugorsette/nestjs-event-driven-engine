@@ -33,10 +33,12 @@ As etapas são incrementais. Cada uma deve resultar em código, documentação, 
 ## 5. Fila e workers — em andamento
 
 - [x] Adicionar adapter BullMQ, fila Redis local com AOF e ID de job determinístico.
+- [x] Implementar consumidor NestJS em processo separado, validar novamente os jobs, configurar concorrência por processo, retries com backoff/jitter e shutdown gracioso.
+- [x] Registrar handler de demonstração sem efeitos de negócio persistentes, deixando esse limite explícito para o portfólio.
 - [ ] Definir retenção de deduplicação, RPO Redis e política de capacidade antes de habilitar processamento contínuo.
-- [ ] Implementar worker com retries, timeout, dead-letter e concorrência limitada.
-- Implementar idempotência no processamento e encerramento gracioso.
-- Definir compose para desenvolvimento local e instruções de operação.
+- [ ] Implementar DLQ com redrive/auditoria, timeout cooperativo e classificação configurável de falhas.
+- [ ] Implementar idempotência durável dos efeitos de processamento após escolher a persistência.
+- [x] Manter Redis Compose e instruções para executar API e worker localmente.
 - Após concluir workers e idempotência, documentar estratégia de deploy e escala em AWS (ECS) e GCP, incluindo serviços separados para API/consumidores, Redis gerenciado, autoscaling, observabilidade e trade-offs. Manter implantação cloud fora do escopo do portfólio enquanto houver custo recorrente sem necessidade demonstrativa.
 
 ## 6. Persistência — em aberto

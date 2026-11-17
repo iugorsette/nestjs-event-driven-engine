@@ -4,7 +4,7 @@ Um motor de processamento de eventos em construção com NestJS e TypeScript. O 
 
 ## Estado atual
 
-A base atual inclui o bootstrap NestJS, endpoint `/health`, configurações defensivas de HTTP, validação de ambiente, logs JSON com correlação por requisição e o adapter de admissão BullMQ/Redis. A rota de ingestão, worker consumidor e persistência de domínio ainda serão implementados.
+A base atual inclui o bootstrap NestJS, endpoint `/health`, configurações defensivas de HTTP, validação de ambiente, logs JSON com correlação por requisição, adapter de admissão BullMQ/Redis e um worker consumidor executado como processo separado. A rota de ingestão HTTP e a persistência de domínio ainda serão implementadas; o handler atual é demonstrativo e não grava efeitos de negócio.
 
 ## Requisitos
 
@@ -22,6 +22,8 @@ npm run start:dev
 
 Verifique `http://localhost:3000/health`; a resposta esperada é `{"status":"ok"}`.
 
+Em outro terminal, inicie o consumidor com `npm run start:worker:dev`. Ele aguardará jobs na fila; como a rota HTTP ainda não existe, nenhum evento externo será publicado nesta etapa.
+
 Para executar a suíte automatizada, use `npm test`. Ela compila o TypeScript dos testes em uma pasta temporária ignorada pelo Git e usa o test runner nativo do Node.
 
 Para validar a integração com Redis real, use `npm run test:redis` depois de subir o serviço local.
@@ -36,6 +38,7 @@ O Redis local é iniciado com AOF (`appendfsync everysec`) e política `noevicti
 | `PORT` | Porta HTTP (inteiro de 1 a 65535) | `3000` |
 | `CORS_ORIGINS` | Origens HTTP(S) exatas, separadas por vírgula e sem caminho | vazio |
 | `REDIS_URL` | URL `redis://` local ou `rediss://` com TLS em produção | `redis://localhost:6379/0` |
+| `WORKER_CONCURRENCY` | Limite de jobs simultâneos por processo worker (1 a 100) | `5` |
 
 Se `CORS_ORIGINS` estiver vazio, CORS fica desativado. Valores inválidos interrompem a inicialização com uma mensagem estruturada. Em produção, configure somente origens confiáveis.
 

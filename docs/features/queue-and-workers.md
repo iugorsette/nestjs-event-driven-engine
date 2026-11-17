@@ -1,6 +1,6 @@
 # Fila e workers
 
-**Estado: adapter BullMQ/Redis implementado; rota e worker ainda não existem.**
+**Estado: adapter BullMQ/Redis e consumidor NestJS implementados; rota HTTP e processamento de negócio persistente ainda não existem.**
 
 ## Objetivo
 
@@ -12,28 +12,52 @@ Separar aceitação HTTP do processamento demorado e absorver picos de volume co
 - O adapter salva envelope e fingerprint em Redis via `Queue.add` e usa `eventId` como `jobId`.
 - Uma leitura posterior ao `add` compara o fingerprint persistido, cobrindo corridas em que o mesmo ID chega com conteúdo diferente.
 - Erros do Redis não são convertidos em aceitação; o port lança `EventAdmissionUnavailableError`.
-- Sem worker, os jobs ficam aguardando. Sem rota HTTP, nenhuma requisição externa publica eventos ainda.
+- A API e o worker são processos independentes: `npm run start:dev` sobe a API e `npm run start:worker:dev` sobe o consumidor. A separação permite escalar cada papel de forma independente.
+- O consumidor `EventIngestionWorker` aceita apenas o nome de job esperado, revalida envelope e fingerprint e rejeita payloads inválidos como falhas permanentes, sem gastar tentativas de retry.
+- `WORKER_CONCURRENCY` configura o limite por processo (padrão 5; faixa aceita de 1 a 100). O padrão é uma hipótese didática, não um resultado de benchmark. Concorrência total cresce com o número de processos.
+- Jobs são adicionados com até 5 tentativas e backoff exponencial com jitter. Falhas do handler são relançadas para o BullMQ controlar retry; o log inclui metadados técnicos, sem payload ou mensagem da exceção.
+- O Nest recebe sinais de encerramento e fecha o contexto do worker para permitir que jobs ativos terminem antes da saída. Em encerramento abrupto, o BullMQ pode recuperar jobs stalled, então o processamento continua exigindo idempotência.
+- O handler atual (`DemoEventProcessor`) só registra metadados demonstrativos. Job concluído significa que esse handler de demonstração terminou; não significa que um efeito de negócio foi persistido.
+- Sem rota HTTP, nenhuma requisição externa publica eventos ainda; o worker pode ficar ocioso até outro produtor enfileirar jobs.
 - `npm run test:redis` verifica o adapter contra Redis real; a suíte padrão usa um fake.
 - A imagem local habilita AOF com `appendfsync everysec`; Redis pode perder cerca de um segundo de gravações após falha abrupta. A configuração não prova durabilidade sem perda.
+- Jobs concluídos e falhos permanecem no Redis. A retenção indefinida preserva a deduplicação atual por `jobId`, mas consome memória; tamanho, retenção e expurgo precisam de uma estratégia explícita antes de operação contínua.
 
-BullMQ ignora um `jobId` repetido enquanto o registro daquele job ainda existe; quando o job é removido, o mesmo ID pode ser aceito novamente. Por isso, o worker futuro não deve ativar limpeza automática de jobs antes de definir e implementar a retenção do registro de idempotência. [Documentação de job IDs](https://docs.bullmq.io/guide/jobs/job-ids)
+BullMQ ignora um `jobId` repetido enquanto o registro daquele job ainda existe; quando o job é removido, o mesmo ID pode ser aceito novamente. Por isso, a limpeza automática de jobs deve esperar uma política de retenção que preserve a idempotência pelo período definido. [Documentação de job IDs](https://docs.bullmq.io/guide/jobs/job-ids)
 
 ## Direção técnica
 
-BullMQ com Redis foi escolhido. A API publicará envelopes validados; workers consumirão assincronamente. A semântica assume entrega pelo menos uma vez: timeout ou perda de confirmação pode levar ao reprocessamento.
+BullMQ com Redis foi escolhido. A API publicará envelopes validados; workers consumirão assincronamente. A semântica assume entrega pelo menos uma vez: falha, perda de confirmação ou encerramento abrupto pode levar ao reprocessamento.
+
+O worker usa `@Processor`/`WorkerHost` do Nest e executa em um application context sem servidor HTTP. A concorrência local melhora o aproveitamento em tarefas com I/O; aumentar réplicas oferece paralelismo e disponibilidade, mas eleva a concorrência agregada e a pressão sobre Redis e dependências. O valor precisa ser medido com a carga real. [NestJS queues](https://docs.nestjs.com/techniques/queues), [BullMQ concurrency](https://docs.bullmq.io/guide/workers/concurrency)
+
+O retry atual tem cinco tentativas totais, backoff exponencial iniciado em um segundo e jitter de 50%. Entradas inválidas usam `UnrecoverableError`; erros transitórios do processador seguem o retry comum. Após esgotar tentativas, BullMQ mantém o job no estado `failed`. Isso é uma área de falhas consultável, ainda não uma DLQ separada com redrive e auditoria. [BullMQ retries](https://docs.bullmq.io/guide/retrying-failing-jobs)
+
+O encerramento gracioso permite que jobs ativos terminem durante `close`; não há timeout de negócio forçado, pois interromper uma operação sem cancelamento cooperativo poderia deixá-la parcialmente executada. [BullMQ graceful shutdown](https://docs.bullmq.io/guide/workers/graceful-shutdown)
 
 ## Política a definir
 
-- Concorrência máxima por worker e mecanismo de backpressure.
-- Número de tentativas, backoff com jitter e classificação de erros transitórios/permanentes.
-- Dead-letter queue, retenção, redrive manual e trilha de auditoria.
+- Medir throughput, latência e memória para calibrar `WORKER_CONCURRENCY`; definir backpressure também na entrada HTTP quando a rota existir.
+- Tornar número de tentativas e backoff configuráveis; classificar erros do domínio como transitórios ou permanentes.
+- Criar DLQ dedicada, retenção, redrive manual e trilha de auditoria; hoje falhas esgotadas permanecem no conjunto `failed` do BullMQ.
+- Definir timeout e cancelamento cooperativo para handlers com efeitos externos.
+- Implementar idempotência do efeito de negócio em persistência durável; a idempotência de admissão por `jobId` não torna o handler exatamente uma vez.
 - A persistência Redis deve ser escolhida com RPO explícito: AOF `everysec` pode perder cerca de um segundo de gravações após falha abrupta; `always` é mais durável e tem custo de desempenho. [Redis persistence](https://redis.io/docs/latest/management/persistence/)
-- Timeout de processamento, encerramento gracioso e reequilíbrio de jobs após queda.
+- Reequilíbrio de jobs stalled após queda e limites operacionais para jobs de longa duração.
 - Segurança de conexão, autenticação, TLS e limites de memória do Redis.
 
 ## Critérios de conclusão
 
 - Mensagem aceita pela API sobrevive ao reinício da aplicação dentro da garantia definida.
-- Worker idempotente e concorrência configurável.
-- Erros permanentes chegam a dead-letter e retries são observáveis.
+- Worker idempotente com efeito persistido e concorrência configurável, ajustada por evidência de carga.
+- Erros transitórios e permanentes têm políticas distintas; falhas permanentes chegam a DLQ com redrive auditável.
 - Runbook local e operacional documentado.
+
+## Como executar localmente
+
+```bash
+docker compose up -d redis
+npm run start:worker:dev
+```
+
+O processo inicia sem endpoint HTTP e aguarda jobs na fila. O endpoint de ingestão e a persistência ainda serão implementados em etapas posteriores; a aplicação demonstrativa não deve ser exposta como serviço de processamento de negócio.

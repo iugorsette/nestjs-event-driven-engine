@@ -16,22 +16,23 @@ flowchart LR
   Nest --> Logs[Logger JSON]
 ```
 
-Hoje o único endpoint de aplicação é `GET /health`. O adapter de admissão BullMQ/Redis e sua configuração já estão implementados, mas ainda não há rota HTTP de ingestão, worker consumidor ou banco de dados.
+Hoje o único endpoint de aplicação é `GET /health`. O adapter BullMQ/Redis e o worker consumidor já estão implementados, mas ainda não há rota HTTP de ingestão ou banco de dados.
 
-## Fluxo futuro pretendido
+## Fluxo assíncrono implementado até aqui
 
 ```mermaid
 flowchart LR
-  Producer[Producer / Client] --> Gateway[API NestJS]
-  Gateway --> Admission[Validação, autenticação e limites]
-  Admission --> Queue[BullMQ / Redis AOF]
-  Queue --> Worker[Workers com concorrência limitada]
-  Worker --> Store[(Persistência)]
-  Gateway -. logs, métricas e traces .-> Obs[Observabilidade]
-  Worker -. logs, métricas e traces .-> Obs
+  Admission[Use case de admissão] --> Queue[BullMQ / Redis AOF]
+  Queue --> Worker[Worker NestJS standalone]
+  Worker --> Handler[Handler de demonstração]
+  Gateway[API NestJS] -. registra produtor da fila .-> Queue
+  Gateway -. logs .-> Obs[Observabilidade]
+  Worker -. logs .-> Obs
 ```
 
-O adapter BullMQ/Redis já existe, mas ainda não há rota HTTP de ingestão nem worker consumidor. A configuração local usa AOF com `appendfsync everysec`, que admite perda de até cerca de um segundo em falha abrupta. Isso não representa durabilidade sem perda em todas as falhas; o perfil de produção depende do RPO requerido.
+O consumidor tem limite de concorrência por processo, revalida os jobs e aplica o handler de demonstração. A rota HTTP, autenticação/rate limiting e persistência de efeitos ainda não existem; o caso de uso de admissão pode ser exercitado isoladamente, mas nenhum produtor externo publica eventos hoje. A configuração local usa AOF com `appendfsync everysec`, que admite perda de até cerca de um segundo em falha abrupta. Isso não representa durabilidade sem perda em todas as falhas; o perfil de produção depende do RPO requerido.
+
+O processo do worker inicia com `npm run start:worker:dev` e pode ser escalado separadamente da API. `WORKER_CONCURRENCY` limita jobs ativos por processo, não globalmente. Com várias réplicas, a concorrência agregada e a pressão em Redis/dependências crescem; valores devem vir de medições, não de uma alegação de throughput sem benchmark.
 
 ## Estratégia de deploy e escala (proposta)
 
@@ -82,6 +83,7 @@ Quando a ingestão for criada, controller, aplicação e domínio devem depender
 - Tornar efeitos dos workers idempotentes para tolerar redelivery e retries.
 - Usar `eventId` como identidade estável do evento; comparar fingerprint SHA-256 do envelope canônico para distinguir retry idêntico de reutilização conflitante do ID.
 - Limitar concorrência e tamanho de payload para que a sobrecarga resulte em backpressure controlado.
+- Tratar retries como entrega pelo menos uma vez; o handler precisa persistir uma chave de idempotência junto aos efeitos antes de afirmar processamento seguro.
 - Propagar IDs de correlação para fila e worker sem usar dados pessoais como identificador.
 - Manter readiness distinta de liveness quando a aplicação depender de Redis e banco.
 
