@@ -31,6 +31,3 @@ Verifique `http://localhost:3000/health`; a resposta esperada é `{"status":"ok"
 
 Se `CORS_ORIGINS` estiver vazio, CORS fica desativado. Valores inválidos interrompem a inicialização com uma mensagem estruturada. Em produção, configure somente origens confiáveis.
 
-## Plano do projeto
-
-As etapas e notas de implementação ficam em `tmp/roteiro.md`, que é ignorado pelo Git conforme solicitado. O README contém apenas o estado e as instruções necessárias para quem clonar o projeto.
