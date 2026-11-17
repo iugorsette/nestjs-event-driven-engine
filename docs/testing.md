@@ -34,3 +34,5 @@ docker compose down
 Ainda não há cobertura HTTP da rota de ingestão, autenticação, rate limit, idempotência ou indisponibilidade da fila. Adicionar essa cobertura com fakes determinísticos para cenários HTTP e Redis real apenas nos testes de integração.
 
 O handler do worker é demonstrativo, sem persistência de domínio. A suíte não estabelece benchmark de throughput; performance será medida quando o processamento real estiver implementado.
+
+O script Lua é copiado para `dist` pelo Nest CLI. A cobertura de integração do limiter deve incluir limite `429`, chaves independentes, janela/expiração, fail-closed (`503`) e execução concorrente contra Redis real; build e lint sozinhos não validam a semântica do script.

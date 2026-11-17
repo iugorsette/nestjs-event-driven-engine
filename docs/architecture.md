@@ -41,6 +41,8 @@ O `POST /events` exige `Authorization: Bearer <INGEST_API_KEY>`. A chave é úni
 
 O storage do rate limit falha fechado: se Redis não conseguir contar a chamada, a API retorna `503`. Atrás de proxy, o IP considerado pelo Express depende da configuração explícita de proxy confiável; o serviço não confia em `X-Forwarded-For` arbitrário.
 
+A atualização e o bloqueio do contador são feitos num script Lua curto carregado via `ioredis.defineCommand`. Ele permite ramificar no resultado do incremento sem voltar ao cliente entre leitura e escrita. As chaves ficam no mesmo hash slot para uso futuro com Redis Cluster. O script executa atomicamente, mas não dá garantia de persistência ou disponibilidade do Redis; também bloqueia outros comandos enquanto roda e deve permanecer barato.
+
 ## Estratégia de deploy e escala (proposta)
 
 O repositório demonstra a arquitetura e as decisões em ambiente local. Não faremos deploy permanente em nuvem como parte do portfólio: manter serviços gerenciados e tráfego contínuo gera custos, e não é necessário para demonstrar que os componentes podem escalar. A proposta abaixo descreve um caminho de evolução, não infraestrutura já provisionada ou validada.
@@ -108,6 +110,7 @@ Controller e aplicação dependem de uma abstração de admissão; a API não co
 | `src/app.controller.ts` | Endpoint mínimo de health. |
 | `src/events/events.controller.ts` | Contrato HTTP de ingestão, respostas `202`/`409`/`503` e throttle específico. |
 | `src/security/` | Guard de chave Bearer e storage Redis atômico para o Throttler. |
+| `src/security/rate-limiting/scripts/` | Script Lua do contador e bloqueio da janela fixa. |
 | `src/observability/` | Contexto assíncrono de requisição e logger estruturado. |
 
 ## Registro de decisão: nuvem como desenho, não como requisito do portfólio
