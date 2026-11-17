@@ -2,7 +2,11 @@ import * as assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { IsString } from 'class-validator';
 import { loadAppConfig } from '../src/config/app-config';
-import { createGlobalValidationPipe } from '../src/create-app';
+import {
+  createGlobalValidationPipe,
+  MAX_REQUEST_BODY_BYTES,
+} from '../src/create-app';
+import { IngestEventDto } from '../src/events/dto/ingest-event.dto';
 
 class ExampleDto {
   @IsString()
@@ -74,5 +78,52 @@ describe('global DTO validation', () => {
 
   it('rejects values with the wrong type', async () => {
     await assert.rejects(pipe.transform({ name: 42 }, metadata), { status: 400 });
+  });
+});
+
+describe('event ingestion contract', () => {
+  const pipe = createGlobalValidationPipe();
+  const metadata = { type: 'body' as const, metatype: IngestEventDto };
+  const validEvent = {
+    eventId: '5fd55d2a-4506-4cd5-9314-2f0a00a43167',
+    eventType: 'order.created',
+    schemaVersion: 1,
+    occurredAt: '2026-11-17T12:30:00Z',
+    payload: { orderId: 'ord-123', totalCents: 4200 },
+  };
+
+  it('accepts and transforms a versioned event envelope', async () => {
+    const result = await pipe.transform(validEvent, metadata);
+
+    assert.ok(result instanceof IngestEventDto);
+    assert.equal(result.eventType, 'order.created');
+    assert.equal(result.schemaVersion, 1);
+  });
+
+  it('rejects unsupported fields and invalid envelope values', async () => {
+    await assert.rejects(
+      pipe.transform({ ...validEvent, producerId: 'untrusted' }, metadata),
+      { status: 400 },
+    );
+    await assert.rejects(
+      pipe.transform({ ...validEvent, eventType: 'Order Created' }, metadata),
+      { status: 400 },
+    );
+    await assert.rejects(
+      pipe.transform({ ...validEvent, schemaVersion: 0 }, metadata),
+      { status: 400 },
+    );
+    await assert.rejects(
+      pipe.transform({ ...validEvent, occurredAt: '2026-11-17T12:30:00' }, metadata),
+      { status: 400 },
+    );
+    await assert.rejects(
+      pipe.transform({ ...validEvent, payload: [] }, metadata),
+      { status: 400 },
+    );
+  });
+
+  it('defines a maximum HTTP JSON body size of 256 KiB', () => {
+    assert.equal(MAX_REQUEST_BODY_BYTES, 256 * 1024);
   });
 });

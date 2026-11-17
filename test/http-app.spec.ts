@@ -44,4 +44,14 @@ describe('HTTP application', () => {
     assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
     assert.ok(response.headers.get('x-frame-options'));
   });
+
+  it('rejects JSON request bodies larger than 256 KiB', async () => {
+    const response = await fetch(`${baseUrl}/health`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ data: 'x'.repeat(260 * 1024) }),
+    });
+
+    assert.equal(response.status, 413);
+  });
 });
