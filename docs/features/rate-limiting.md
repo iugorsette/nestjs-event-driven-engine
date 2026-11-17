@@ -10,7 +10,7 @@ Reduzir brute force e abuso acidental/malicioso com contadores compartilhados en
 
 O guard global aplica 120 requisições/minuto por IP às rotas HTTP, exceto `GET /health`. `POST /events` substitui esse limite por 30 requisições/minuto e bloqueia por 60 segundos quando excedido. As respostas incluem `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` e `Retry-After` quando bloqueadas. A contagem fica em janela fixa implementada por script Lua atômico; as chaves Redis contêm hash do tracker, não o IP em texto claro. O limite é por IP mesmo após autenticação, como defesa contra brute force e abuso de credenciais.
 
-O storage falha fechado: indisponibilidade ou erro Redis retorna `503` em vez de aceitar chamadas sem contagem. Para várias réplicas, Redis mantém uma fonte compartilhada de contagem. A chave Bearer ainda é única e não representa uma identidade com quota individual.
+O storage falha fechado: indisponibilidade ou erro Redis retorna `503` em vez de aceitar chamadas sem contagem. O módulo espera o cliente Redis atingir `ready` durante o startup; se isso não ocorrer em cinco segundos, a inicialização falha. No encerramento, a conexão do limiter é desconectada para não prender o shutdown. Para várias réplicas, Redis mantém uma fonte compartilhada de contagem. A chave Bearer ainda é única e não representa uma identidade com quota individual.
 
 ## Decisão: script Lua e adapter do storage
 
@@ -30,7 +30,7 @@ Há, porém, um ponto concreto a verificar antes de adotar a versão `1.2.0`: o 
 
 Neste portfólio, mantivemos o adapter próprio por dois motivos limitados: estudar e mostrar a operação atômica em Lua, e controlar o comportamento de bloqueio/fail-closed deste projeto. O tratamento de Redis indisponível como `503` também é uma política local que pode ser implementada por wrapper/filtro ao usar o pacote; não é, sozinho, motivo suficiente para manter um storage inteiro próprio. O custo da escolha própria é nosso: compatibilidade com `@nestjs/throttler`, tratamento de erros, manutenção do script e testes em cada versão de Redis suportada.
 
-**Decisão revisável:** antes de usar qualquer uma das implementações em produção, cobrir concorrência, expiração e `Retry-After` contra Redis real. Se uma versão do pacote passar esses cenários e aceitar a política fail-closed desejada, preferi-la reduz código próprio; se não passar, manter ou contribuir uma correção específica. A versão atual do adapter é uma decisão didática para o portfólio, não uma alegação de superioridade geral.
+**Decisão revisável:** a integração atual valida o `429` e `Retry-After` com Redis real; ainda faltam regressões diretas para concorrência, expiração e indisponibilidade real do Redis. Antes de usar qualquer uma das implementações em produção, cobrir esses cenários. Se uma versão do pacote passar esses cenários e aceitar a política fail-closed desejada, preferi-la reduz código próprio; se não passar, manter ou contribuir uma correção específica. A versão atual do adapter é uma decisão didática para o portfólio, não uma alegação de superioridade geral.
 
 **Limite da decisão:** atomicidade reduz condições de corrida no contador; não prova capacidade, durabilidade, disponibilidade ou segurança completa do serviço. A frase “não falha sob concorrência” seria forte demais. O código e a configuração de Redis ainda precisam de testes e operação observada.
 
@@ -45,5 +45,6 @@ Neste portfólio, mantivemos o adapter próprio por dois motivos limitados: estu
 
 - Limites consistentes entre instâncias e configuração reproduzível localmente.
 - Respostas e headers documentados.
-- Cobertura HTTP para autenticação, limite excedido, duplicatas e falha de Redis.
-- Validar o comportamento e headers `429`/`503` sob integração com Redis.
+- [x] Cobertura HTTP com storage fake para autenticação, limite excedido, duplicatas, fila indisponível e fail-closed `503`.
+- [x] Validar limite `429` e header `Retry-After` em integração HTTP com Redis real.
+- [ ] Validar expiração, concorrência e indisponibilidade real do Redis contra o storage em integração.

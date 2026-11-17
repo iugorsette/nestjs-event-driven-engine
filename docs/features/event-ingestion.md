@@ -70,7 +70,8 @@ O `202` significa que Redis confirmou a publicação, não que o evento foi proc
 - [x] Adapter BullMQ com job ID determinístico e comparação de fingerprint.
 - [x] Resposta HTTP vinculada à confirmação da fila.
 - [x] Autenticação Bearer de produtor e rate limit Redis compartilhado.
-- [ ] Cobertura HTTP de autenticação, limite `429`, duplicatas, conflito e indisponibilidade da fila.
+- [x] Cobertura HTTP de autenticação, limite `429`, duplicatas, conflito e indisponibilidade da fila.
+- [x] Integração com Redis real para confirmar publicação, deduplicação, conflito e resposta `429`.
 - [x] Logs HTTP e de processamento sem conteúdo do evento ou credencial.
 
 ## Exemplo local

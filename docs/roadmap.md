@@ -24,14 +24,15 @@ As etapas são incrementais. Cada uma deve resultar em código, documentação, 
 - [ ] Revisar o RPO Redis antes de prometer a aceitação como sem perda.
 - [x] Publicar somente após confirmação da fila; retornar `202`, `409` para conflito e `503` quando fila indisponível.
 - [x] Expor `POST /events` com DTO estrito e autenticação Bearer.
-- [ ] Cobrir respostas HTTP de validação, duplicata, conflito, autenticação e indisponibilidade da fila.
+- [x] Cobrir respostas HTTP de validação, duplicata, conflito, autenticação e indisponibilidade da fila.
 
 ## 4. Proteção de tráfego — em andamento
 
 - [x] Exigir uma chave de produtor com comparação em tempo constante; torná-la obrigatória na inicialização da API em produção.
 - [x] Aplicar limite por IP à rota de ingestão (30 chamadas/60s e bloqueio por 60s) usando storage Redis compartilhado e resposta `429`.
 - [x] Falhar fechado com `503` se o storage Redis do rate limit estiver indisponível.
-- [ ] Validar IP real atrás de proxy confiável, definir política de rotação de credenciais e adicionar cobertura HTTP dos cenários de segurança.
+- [x] Cobrir o `429` HTTP, o fail-closed do limiter e o fluxo Redis real de ingestão em integração.
+- [ ] Validar IP real atrás do proxy de produção, definir política de rotação de credenciais e testar expiração/concorrência do script Lua contra Redis.
 
 ## 5. Fila e workers — em andamento
 
