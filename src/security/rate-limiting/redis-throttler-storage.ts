@@ -1,4 +1,9 @@
-import { Injectable, OnModuleDestroy, ServiceUnavailableException } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleDestroy,
+  OnModuleInit,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ThrottlerStorage } from '@nestjs/throttler';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
@@ -41,7 +46,7 @@ const incrementScript = loadIncrementThrottleScript();
 
 @Injectable()
 export class RedisThrottlerStorage
-  implements ThrottlerStorage, OnModuleDestroy
+  implements ThrottlerStorage, OnModuleInit, OnModuleDestroy
 {
   private readonly redis: RedisWithThrottleCommand;
 
@@ -52,6 +57,23 @@ export class RedisThrottlerStorage
       lua: incrementScript,
     });
     this.redis = redis as RedisWithThrottleCommand;
+  }
+
+  async onModuleInit(): Promise<void> {
+    if (this.redis.status === 'ready') return;
+
+    await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        this.redis.off('ready', onReady);
+        reject(new Error('Redis did not become ready during application startup.'));
+      }, 5_000);
+      const onReady = () => {
+        clearTimeout(timeout);
+        resolve();
+      };
+
+      this.redis.once('ready', onReady);
+    });
   }
 
   async increment(
@@ -92,12 +114,7 @@ export class RedisThrottlerStorage
     }
   }
 
-  async onModuleDestroy(): Promise<void> {
-    if (this.redis.status === 'ready') {
-      await this.redis.quit();
-      return;
-    }
-
+  onModuleDestroy(): void {
     this.redis.disconnect();
   }
 }
