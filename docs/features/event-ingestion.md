@@ -1,6 +1,6 @@
 # Ingestão de eventos
 
-**Estado: contrato inicial implementado; endpoint ainda não existe.** O DTO estrito está em `src/events/dto/ingest-event.dto.ts` e o limite HTTP de JSON é 256 KiB.
+**Estado: contrato e caso de uso implementados; endpoint e adaptador durável ainda não existem.** O DTO estrito está em `src/events/dto/ingest-event.dto.ts`, o limite HTTP de JSON é 256 KiB, e `EventAdmissionPort` define a fronteira para a futura fila.
 
 ## Objetivo
 
@@ -42,7 +42,8 @@ Campos desconhecidos são rejeitados pela `ValidationPipe` global. Identidade do
 - `eventId` é a identidade estável de idempotência; não será necessário um segundo header `Idempotency-Key` no contrato inicial.
 - Reenvio do mesmo `eventId` com o mesmo envelope é duplicata e deve devolver a confirmação original sem publicar de novo.
 - Reenvio do mesmo `eventId` com conteúdo diferente é conflito HTTP `409` e não deve publicar.
-- Indisponibilidade da fila não pode ser respondida como aceitação bem-sucedida.
+- A aplicação não pode responder como aceitação antes de o adaptador confirmar publicação durável.
+- Indisponibilidade da fila deverá retornar erro retryable (`503`) e nunca confirmação de aceitação.
 
 ## Decisões em aberto
 
@@ -52,12 +53,15 @@ Campos desconhecidos são rejeitados pela `ValidationPipe` global. Identidade do
 - Período de retenção das identidades aceitas; precisa cobrir a janela de retry/replay suportada pelo serviço.
 - Como persistir atomicamente identidade, fingerprint e publicação durável quando a fila for integrada.
 
+O caso de uso chama a porta de admissão com o evento e seu fingerprint. A implementação da porta precisa reservar `eventId` e publicar atomicamente (ou usar um mecanismo de outbox equivalente). Hoje só o contrato da porta existe, sem adapter Redis/BullMQ.
+
 O DTO e o limite de corpo não criam uma rota. `POST /events` continua adiado até a camada de publicação poder confirmar aceitação durável; responder `202` antes disso criaria risco de perda de eventos.
 
 ## Critérios de conclusão
 
 - [x] DTO estrito e limite inicial de corpo publicados e cobertos por testes.
 - [x] Semântica de idempotência definida; fingerprint SHA-256 canônico implementado como primitiva pura.
+- [x] Caso de uso e porta de admissão desacoplados do broker.
 - [ ] Resposta HTTP vinculada à confirmação da fila.
 - [ ] Cobertura HTTP de duplicatas e indisponibilidade da fila.
 - Métricas/logs sem conteúdo sensível do evento.

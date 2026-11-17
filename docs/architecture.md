@@ -72,6 +72,7 @@ Quando a ingestão for criada, controller, aplicação e domínio devem depender
 | `src/main.ts` | Carrega ambiente, configura Nest, HTTP security middleware, validação e CORS. |
 | `src/create-app.ts` | Monta a aplicação HTTP para execução e testes com a mesma configuração. |
 | `src/events/dto/` | Contratos versionados e validação estrita dos eventos de entrada. |
+| `src/events/application/` | Caso de uso e porta para admissão idempotente desacoplada do broker. |
 | `src/config/app-config.ts` | Valida e transforma variáveis de ambiente. |
 | `src/app.module.ts` | Registra controllers e middleware de contexto. |
 | `src/app.controller.ts` | Endpoint mínimo de health. |

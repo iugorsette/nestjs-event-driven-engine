@@ -19,6 +19,7 @@ As etapas são incrementais. Cada uma deve resultar em código, documentação, 
 - [x] Definir envelope versionado, DTO estrito e limite inicial de corpo.
 - [x] Validar o limite no ponto exato de 256 KiB e acima dele.
 - [x] Definir `eventId` como identidade de idempotência e conflito para envelope diferente.
+- [x] Criar caso de uso e porta de admissão sem dependência do broker.
 - [ ] Definir duração da retenção idempotente e como a reserva será atômica com a publicação.
 - Publicar somente após confirmação durável da fila (depende da etapa 5).
 
