@@ -8,12 +8,12 @@
 
 ## Em implementação
 
-- [Contrato de ingestão de eventos](event-ingestion.md) (DTO implementado; endpoint planejado)
-- [Fila e workers](queue-and-workers.md) (adapter Redis/BullMQ implementado; worker planejado)
+- [Contrato de ingestão de eventos](event-ingestion.md) (`POST /events` implementado; cobertura HTTP e persistência pendentes)
+- [Fila e workers](queue-and-workers.md) (adapter e consumidor implementados; DLQ/idempotência de negócio pendentes)
+- [Rate limiting distribuído](rate-limiting.md) (limites iniciais implementados; proxy confiável e cobertura HTTP pendentes)
 
 ## Planejado
 
-- [Rate limiting distribuído](rate-limiting.md)
 - [Persistência](persistence.md)
 - [Observabilidade operacional](observability.md)
 

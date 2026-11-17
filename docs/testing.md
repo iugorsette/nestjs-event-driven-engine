@@ -31,6 +31,6 @@ docker compose down
 
 ## Limites conhecidos
 
-Ainda não há rota de ingestão, então os testes do envelope usam o mesmo `ValidationPipe` usado no bootstrap. Quando a rota de eventos for criada, adicionar testes HTTP para o contrato, autenticação, idempotência e indisponibilidade da fila.
+Ainda não há cobertura HTTP da rota de ingestão, autenticação, rate limit, idempotência ou indisponibilidade da fila. Adicionar essa cobertura com fakes determinísticos para cenários HTTP e Redis real apenas nos testes de integração.
 
-Ainda não há cobertura de workers ou processamento de domínio porque esses componentes ainda não existem. Os testes não estabelecem um benchmark de throughput; performance será medida quando o pipeline estiver implementado.
+O handler do worker é demonstrativo, sem persistência de domínio. A suíte não estabelece benchmark de throughput; performance será medida quando o processamento real estiver implementado.

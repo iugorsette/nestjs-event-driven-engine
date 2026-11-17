@@ -13,10 +13,13 @@ flowchart LR
   Context --> Nest[NestJS API]
   Nest --> Validation[ValidationPipe global]
   Nest --> Health[GET /health]
+  Nest --> Events[POST /events]
+  Events --> Auth[Bearer key + rate limit Redis]
+  Auth --> Queue[BullMQ / Redis]
   Nest --> Logs[Logger JSON]
 ```
 
-Hoje o único endpoint de aplicação é `GET /health`. O adapter BullMQ/Redis e o worker consumidor já estão implementados, mas ainda não há rota HTTP de ingestão ou banco de dados.
+`GET /health` e `POST /events` estão disponíveis. A rota de ingestão usa DTO estrito, autenticação Bearer, rate limit Redis compartilhado e o caso de uso de admissão. Ainda não há persistência de domínio.
 
 ## Fluxo assíncrono implementado até aqui
 
@@ -30,9 +33,13 @@ flowchart LR
   Worker -. logs .-> Obs
 ```
 
-O consumidor tem limite de concorrência por processo, revalida os jobs e aplica o handler de demonstração. A rota HTTP, autenticação/rate limiting e persistência de efeitos ainda não existem; o caso de uso de admissão pode ser exercitado isoladamente, mas nenhum produtor externo publica eventos hoje. A configuração local usa AOF com `appendfsync everysec`, que admite perda de até cerca de um segundo em falha abrupta. Isso não representa durabilidade sem perda em todas as falhas; o perfil de produção depende do RPO requerido.
+O consumidor tem limite de concorrência por processo, revalida os jobs e aplica o handler de demonstração. O `202 Accepted` indica confirmação da fila, não conclusão do worker nem garantia de perda zero. A configuração local usa AOF com `appendfsync everysec`, que admite perda de até cerca de um segundo em falha abrupta; o perfil de produção depende do RPO requerido.
 
 O processo do worker inicia com `npm run start:worker:dev` e pode ser escalado separadamente da API. `WORKER_CONCURRENCY` limita jobs ativos por processo, não globalmente. Com várias réplicas, a concorrência agregada e a pressão em Redis/dependências crescem; valores devem vir de medições, não de uma alegação de throughput sem benchmark.
+
+O `POST /events` exige `Authorization: Bearer <INGEST_API_KEY>`. A chave é única para o ambiente nesta versão; não há identidade individual, autorização multi-tenant ou rotação independente. O rate limit usa 30 requisições por IP em 60 segundos, com bloqueio de 60 segundos. O contador Lua é atômico e compartilhado pelo Redis. A janela fixa pode permitir rajadas nos limites entre janelas; essa escolha inicial deve ser reavaliada com tráfego medido.
+
+O storage do rate limit falha fechado: se Redis não conseguir contar a chamada, a API retorna `503`. Atrás de proxy, o IP considerado pelo Express depende da configuração explícita de proxy confiável; o serviço não confia em `X-Forwarded-For` arbitrário.
 
 ## Estratégia de deploy e escala (proposta)
 
@@ -74,7 +81,7 @@ O logger escreve um objeto JSON por linha, adequado à coleta por stdout em cont
 
 ### API desacoplada do transporte de eventos
 
-Quando a ingestão for criada, controller, aplicação e domínio devem depender de uma abstração de publicação. A API não deve conhecer detalhes internos do BullMQ; isso deixa possível testar regras sem Redis e substituir infraestrutura sem alterar o contrato HTTP.
+Controller e aplicação dependem de uma abstração de admissão; a API não conhece detalhes internos do BullMQ. Isso permite testar regras sem Redis e trocar infraestrutura sem alterar o contrato HTTP.
 
 ## Propriedades arquiteturais a preservar
 
@@ -99,6 +106,8 @@ Quando a ingestão for criada, controller, aplicação e domínio devem depender
 | `src/config/app-config.ts` | Valida e transforma variáveis de ambiente. |
 | `src/app.module.ts` | Registra controllers e middleware de contexto. |
 | `src/app.controller.ts` | Endpoint mínimo de health. |
+| `src/events/events.controller.ts` | Contrato HTTP de ingestão, respostas `202`/`409`/`503` e throttle específico. |
+| `src/security/` | Guard de chave Bearer e storage Redis atômico para o Throttler. |
 | `src/observability/` | Contexto assíncrono de requisição e logger estruturado. |
 
 ## Registro de decisão: nuvem como desenho, não como requisito do portfólio

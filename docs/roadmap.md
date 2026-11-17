@@ -22,13 +22,16 @@ As etapas são incrementais. Cada uma deve resultar em código, documentação, 
 - [x] Criar caso de uso e porta de admissão sem dependência do broker.
 - [ ] Definir duração da retenção idempotente e política de limpeza dos jobs.
 - [ ] Revisar o RPO Redis antes de prometer a aceitação como sem perda.
-- Publicar somente após confirmação durável da fila (depende da etapa 5).
+- [x] Publicar somente após confirmação da fila; retornar `202`, `409` para conflito e `503` quando fila indisponível.
+- [x] Expor `POST /events` com DTO estrito e autenticação Bearer.
+- [ ] Cobrir respostas HTTP de validação, duplicata, conflito, autenticação e indisponibilidade da fila.
 
-## 4. Proteção de tráfego — planejado
+## 4. Proteção de tráfego — em andamento
 
-- Adicionar autenticação para produtores e rate limit distribuído com Redis.
-- Definir chaves de limite, limites por rota e resposta `429`.
-- Decidir e documentar o comportamento quando Redis ficar indisponível.
+- [x] Exigir uma chave de produtor com comparação em tempo constante; torná-la obrigatória na inicialização da API em produção.
+- [x] Aplicar limite por IP à rota de ingestão (30 chamadas/60s e bloqueio por 60s) usando storage Redis compartilhado e resposta `429`.
+- [x] Falhar fechado com `503` se o storage Redis do rate limit estiver indisponível.
+- [ ] Validar IP real atrás de proxy confiável, definir política de rotação de credenciais e adicionar cobertura HTTP dos cenários de segurança.
 
 ## 5. Fila e workers — em andamento
 
