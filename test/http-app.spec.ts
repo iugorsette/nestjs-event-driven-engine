@@ -46,12 +46,27 @@ describe('HTTP application', () => {
   });
 
   it('rejects JSON request bodies larger than 256 KiB', async () => {
+    const bodyAboveLimit = JSON.stringify({ data: 'x'.repeat(260 * 1024) });
     const response = await fetch(`${baseUrl}/health`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ data: 'x'.repeat(260 * 1024) }),
+      body: bodyAboveLimit,
     });
 
     assert.equal(response.status, 413);
+  });
+
+  it('parses a JSON body at the exact 256 KiB boundary', async () => {
+    const prefix = '{"payload":"';
+    const suffix = '"}';
+    const body = `${prefix}${'x'.repeat(256 * 1024 - prefix.length - suffix.length)}${suffix}`;
+
+    const response = await fetch(`${baseUrl}/health`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body,
+    });
+
+    assert.equal(response.status, 404);
   });
 });

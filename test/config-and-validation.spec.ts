@@ -7,6 +7,10 @@ import {
   MAX_REQUEST_BODY_BYTES,
 } from '../src/create-app';
 import { IngestEventDto } from '../src/events/dto/ingest-event.dto';
+import {
+  classifyEventSubmission,
+  fingerprintEvent,
+} from '../src/events/event-fingerprint';
 
 class ExampleDto {
   @IsString()
@@ -125,5 +129,37 @@ describe('event ingestion contract', () => {
 
   it('defines a maximum HTTP JSON body size of 256 KiB', () => {
     assert.equal(MAX_REQUEST_BODY_BYTES, 256 * 1024);
+  });
+
+  it('fingerprints equivalent JSON objects independent of key order', () => {
+    const reorderedEvent = {
+      payload: { totalCents: 4200, orderId: 'ord-123' },
+      occurredAt: validEvent.occurredAt,
+      schemaVersion: validEvent.schemaVersion,
+      eventType: validEvent.eventType,
+      eventId: validEvent.eventId,
+    } as IngestEventDto;
+
+    assert.equal(
+      fingerprintEvent(validEvent as IngestEventDto),
+      fingerprintEvent(reorderedEvent),
+    );
+  });
+
+  it('classifies a retry as new, duplicate, or conflicting by event ID and content', () => {
+    const acceptedFingerprint = fingerprintEvent(validEvent as IngestEventDto);
+
+    assert.equal(classifyEventSubmission(validEvent as IngestEventDto), 'new');
+    assert.equal(
+      classifyEventSubmission(validEvent as IngestEventDto, acceptedFingerprint),
+      'duplicate',
+    );
+    assert.equal(
+      classifyEventSubmission(
+        { ...validEvent, payload: { ...validEvent.payload, totalCents: 5000 } } as IngestEventDto,
+        acceptedFingerprint,
+      ),
+      'conflict',
+    );
   });
 });
