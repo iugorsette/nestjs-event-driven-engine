@@ -10,15 +10,16 @@ Este documento distingue controles já configurados de controles planejados. Con
 | HPP | Implementado | Normaliza parâmetros HTTP duplicados conforme o middleware `hpp`. | O comportamento de parâmetros repetidos deve ser coberto quando filtros de eventos existirem. |
 | ValidationPipe | Implementado globalmente | Transforma DTOs, remove campos fora da allowlist e rejeita campos desconhecidos. | Ainda não há endpoint de ingestão com DTO; portanto, a validação de payloads não foi exercitada em uma rota de escrita. |
 | CORS | Implementado por allowlist | Aceita somente as origens configuradas em `CORS_ORIGINS`; lista vazia desativa CORS. | CORS é uma política de navegador, não autenticação nem proteção contra chamadas diretas à API. |
-| Configuração | Implementado | Rejeita ambiente, porta e origens inválidas no startup. | Segredos ainda não são usados; não colocar credenciais em `.env` versionado. |
+| Configuração | Implementado | Rejeita ambiente, porta, origens CORS e URL Redis inválidos; exige `rediss://` em produção. | Senhas Redis devem ficar em secret manager; não colocar credenciais em `.env` versionado. |
+| Limite de corpo | Implementado | O parser JSON rejeita corpos maiores que 256 KiB com `413`. | O limite ainda é constante de código; revisar com payloads reais antes de produção. |
+| Redis | Implementado localmente | Compose usa volume, AOF, `appendfsync everysec` e `noeviction`. | O perfil local admite cerca de 1 s de perda abrupta e tem teto de memória de 512 MiB. |
 | Logs | Implementado | Gera ID no servidor e evita registrar URL, query, headers e corpo nos eventos HTTP. | Logs de aplicação futuros devem continuar removendo tokens, payloads sensíveis e dados pessoais. |
 
 ## Ainda não implementado
 
-- Rate limiting distribuído por Redis; sem isso, não há mitigação de brute force ou abuso de tráfego na camada da aplicação.
+- Rota de ingestão, autenticação e rate limiting distribuído.
 - Autenticação e autorização para produtores.
-- Ingestão de eventos, limite de tamanho do body e validação de DTO de evento.
-- Fila, política de redelivery, dead-letter queue e proteção contra duplicatas.
+- Worker, política operacional de redelivery/dead-letter e retenção de idempotência.
 - Persistência ou consultas SQL/NoSQL. Não há sanitização de consulta a implementar até a escolha de um armazenamento.
 - Métricas, tracing distribuído e alertas operacionais.
 

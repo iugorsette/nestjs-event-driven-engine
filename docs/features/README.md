@@ -6,17 +6,20 @@
 - [Health endpoint](#health-endpoint)
 - [Logging HTTP correlacionado](#logging-http-correlacionado)
 
-## Planejado
+## Em implementação
 
 - [Contrato de ingestão de eventos](event-ingestion.md) (DTO implementado; endpoint planejado)
+- [Fila e workers](queue-and-workers.md) (adapter Redis/BullMQ implementado; worker planejado)
+
+## Planejado
+
 - [Rate limiting distribuído](rate-limiting.md)
-- [Fila e workers](queue-and-workers.md)
 - [Persistência](persistence.md)
 - [Observabilidade operacional](observability.md)
 
 ## Bootstrap e configuração segura
 
-**Estado: implementado.** Helmet e HPP são aplicados no bootstrap; a `ValidationPipe` global transforma DTOs e rejeita propriedades não permitidas. As origens CORS vêm de `CORS_ORIGINS`. `NODE_ENV`, `PORT` e as origens são validados antes de o servidor abrir a porta.
+**Estado: implementado.** Helmet e HPP são aplicados no bootstrap; a `ValidationPipe` global transforma DTOs e rejeita propriedades não permitidas. As origens CORS vêm de `CORS_ORIGINS`. `NODE_ENV`, `PORT`, as origens e a URL Redis são validados antes de o servidor abrir a porta.
 
 Detalhes e limites: [segurança](../security.md) e [arquitetura](../architecture.md).
 

@@ -1,6 +1,6 @@
 # Ingestão de eventos
 
-**Estado: contrato e caso de uso implementados; endpoint e adaptador durável ainda não existem.** O DTO estrito está em `src/events/dto/ingest-event.dto.ts`, o limite HTTP de JSON é 256 KiB, e `EventAdmissionPort` define a fronteira para a futura fila.
+**Estado: contrato, caso de uso e adapter BullMQ implementados; endpoint e worker ainda não existem.** O DTO estrito está em `src/events/dto/ingest-event.dto.ts`, o limite HTTP de JSON é 256 KiB, e `EventAdmissionPort` separa aplicação e fila.
 
 ## Objetivo
 
@@ -51,17 +51,18 @@ Campos desconhecidos são rejeitados pela `ValidationPipe` global. Identidade do
 - Autenticação, autorização por produtor e quotas.
 - Retenção e compatibilidade de versões do schema.
 - Período de retenção das identidades aceitas; precisa cobrir a janela de retry/replay suportada pelo serviço.
-- Como persistir atomicamente identidade, fingerprint e publicação durável quando a fila for integrada.
+- Janela de retenção de jobs/idempotência e regra de limpeza após processamento.
 
-O caso de uso chama a porta de admissão com o evento e seu fingerprint. A implementação da porta precisa reservar `eventId` e publicar atomicamente (ou usar um mecanismo de outbox equivalente). Hoje só o contrato da porta existe, sem adapter Redis/BullMQ.
+O caso de uso chama a porta de admissão com o evento e seu fingerprint. O adapter BullMQ usa `eventId` como `jobId` e confere o fingerprint do job persistido após a publicação para tratar IDs repetidos e concorrentes. A garantia de deduplicação termina se o job for removido; a retenção ainda precisa ser definida antes de adicionar um worker que limpe jobs concluídos.
 
-O DTO e o limite de corpo não criam uma rota. `POST /events` continua adiado até a camada de publicação poder confirmar aceitação durável; responder `202` antes disso criaria risco de perda de eventos.
+O DTO e o adapter ainda não criam uma rota. `POST /events` continua adiado até termos rate limiting e um worker com política de backpressure e retenção; além disso, a configuração Redis local tem um RPO aproximado de um segundo e não deve ser descrita como garantia sem perda.
 
 ## Critérios de conclusão
 
 - [x] DTO estrito e limite inicial de corpo publicados e cobertos por testes.
 - [x] Semântica de idempotência definida; fingerprint SHA-256 canônico implementado como primitiva pura.
 - [x] Caso de uso e porta de admissão desacoplados do broker.
+- [x] Adapter BullMQ com job ID determinístico e comparação de fingerprint.
 - [ ] Resposta HTTP vinculada à confirmação da fila.
 - [ ] Cobertura HTTP de duplicatas e indisponibilidade da fila.
 - Métricas/logs sem conteúdo sensível do evento.

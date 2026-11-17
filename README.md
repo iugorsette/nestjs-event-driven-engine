@@ -4,7 +4,7 @@ Um motor de processamento de eventos em construção com NestJS e TypeScript. O 
 
 ## Estado atual
 
-A base atual inclui o bootstrap NestJS, endpoint `/health`, configurações defensivas de HTTP, validação de ambiente e logs JSON com correlação por requisição. O processamento de eventos, filas, Redis e persistência ainda serão implementados.
+A base atual inclui o bootstrap NestJS, endpoint `/health`, configurações defensivas de HTTP, validação de ambiente, logs JSON com correlação por requisição e o adapter de admissão BullMQ/Redis. A rota de ingestão, worker consumidor e persistência de domínio ainda serão implementados.
 
 ## Requisitos
 
@@ -16,12 +16,17 @@ A base atual inclui o bootstrap NestJS, endpoint `/health`, configurações defe
 ```bash
 cp .env.example .env
 npm install
+docker compose up -d redis
 npm run start:dev
 ```
 
 Verifique `http://localhost:3000/health`; a resposta esperada é `{"status":"ok"}`.
 
 Para executar a suíte automatizada, use `npm test`. Ela compila o TypeScript dos testes em uma pasta temporária ignorada pelo Git e usa o test runner nativo do Node.
+
+Para validar a integração com Redis real, use `npm run test:redis` depois de subir o serviço local.
+
+O Redis local é iniciado com AOF (`appendfsync everysec`) e política `noeviction`. Essa configuração é para desenvolvimento e pode perder até cerca de um segundo de gravações em uma falha abrupta; ajuste persistência, memória e replicação para o RPO/RTO do ambiente de produção.
 
 ## Configuração
 
@@ -30,6 +35,7 @@ Para executar a suíte automatizada, use `npm test`. Ela compila o TypeScript do
 | `NODE_ENV` | `development`, `test` ou `production` | `development` |
 | `PORT` | Porta HTTP (inteiro de 1 a 65535) | `3000` |
 | `CORS_ORIGINS` | Origens HTTP(S) exatas, separadas por vírgula e sem caminho | vazio |
+| `REDIS_URL` | URL `redis://` local ou `rediss://` com TLS em produção | `redis://localhost:6379/0` |
 
 Se `CORS_ORIGINS` estiver vazio, CORS fica desativado. Valores inválidos interrompem a inicialização com uma mensagem estruturada. Em produção, configure somente origens confiáveis.
 

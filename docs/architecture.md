@@ -4,7 +4,7 @@
 
 O serviço receberá eventos via HTTP, confirmará a aceitação quando eles estiverem protegidos contra perda, e os processará em workers assíncronos. A arquitetura será construída em etapas para tornar explícitos os limites de entrega, falha e recuperação.
 
-## Fluxo implementado hoje
+## Fluxo HTTP implementado hoje
 
 ```mermaid
 flowchart LR
@@ -16,7 +16,7 @@ flowchart LR
   Nest --> Logs[Logger JSON]
 ```
 
-Hoje o único endpoint de aplicação é `GET /health`. Não existe ingestão de eventos, fila, worker ou banco de dados.
+Hoje o único endpoint de aplicação é `GET /health`. O adapter de admissão BullMQ/Redis e sua configuração já estão implementados, mas ainda não há rota HTTP de ingestão, worker consumidor ou banco de dados.
 
 ## Fluxo futuro pretendido
 
@@ -24,14 +24,34 @@ Hoje o único endpoint de aplicação é `GET /health`. Não existe ingestão de
 flowchart LR
   Producer[Producer / Client] --> Gateway[API NestJS]
   Gateway --> Admission[Validação, autenticação e limites]
-  Admission --> Queue[Fila durável]
+  Admission --> Queue[BullMQ / Redis AOF]
   Queue --> Worker[Workers com concorrência limitada]
   Worker --> Store[(Persistência)]
   Gateway -. logs, métricas e traces .-> Obs[Observabilidade]
   Worker -. logs, métricas e traces .-> Obs
 ```
 
-A fila e a persistência ainda são decisões a implementar. O desenho acima representa o fluxo pretendido, não uma garantia atual do serviço.
+O adapter BullMQ/Redis já existe, mas ainda não há rota HTTP de ingestão nem worker consumidor. A configuração local usa AOF com `appendfsync everysec`, que admite perda de até cerca de um segundo em falha abrupta. Isso não representa durabilidade sem perda em todas as falhas; o perfil de produção depende do RPO requerido.
+
+## Estratégia de deploy e escala (proposta)
+
+O repositório demonstra a arquitetura e as decisões em ambiente local. Não faremos deploy permanente em nuvem como parte do portfólio: manter serviços gerenciados e tráfego contínuo gera custos, e não é necessário para demonstrar que os componentes podem escalar. A proposta abaixo descreve um caminho de evolução, não infraestrutura já provisionada ou validada.
+
+### Como escalar na AWS com ECS
+
+- Publicar API e workers como imagens de container e executá-los como serviços ECS separados. Assim, a API escala por demanda HTTP, enquanto workers escalam de forma independente conforme o backlog e a taxa de processamento.
+- Usar um Application Load Balancer para entrada HTTP e manter as tarefas e dependências em uma rede privada, expondo somente os pontos de entrada necessários.
+- Substituir Redis local por uma oferta gerenciada compatível com Redis/Valkey, em configuração multi-AZ escolhida conforme RPO, disponibilidade, throughput e custo. Validar previamente compatibilidade e semântica requeridas pelo BullMQ.
+- Armazenar segredos fora das imagens e da configuração versionada; centralizar logs e métricas para acompanhar latência, erros, saturação e idade/profundidade da fila.
+- Definir autoscaling dos workers com métricas de backlog e capacidade de processamento, com limites para concorrência e custo. Escalar somente por CPU pode reagir tarde quando a fila cresce antes de a CPU saturar.
+
+### Como escalar na GCP
+
+A mesma separação entre API e consumidores se aplica: empacotar cada processo em container, usar serviços gerenciados de execução apropriados para processos HTTP e consumidores contínuos, e conectar ambos a uma instância Redis compatível gerenciada. A escolha entre serviços de containers, Kubernetes ou VMs depende dos requisitos de execução contínua, controle operacional e custo; deve ser validada quando a implantação for realmente planejada. Métricas de backlog, segredos gerenciados, rede privada, logs e alertas continuam necessários.
+
+### Decisões que precedem produção
+
+Uma implantação real exige fechar RPO/RTO, retenção e deduplicação, capacidade e política de escala, alta disponibilidade do Redis, estratégia de backup/recuperação, segurança de rede, orçamento e observabilidade. BullMQ depende do Redis para coordenação dos jobs; escalar API e workers horizontalmente não remove esse componente compartilhado nem seus limites. Por isso, a documentação de produção será aprofundada quando os workers, o processamento idempotente e as políticas operacionais estiverem implementados.
 
 ## Decisões atuais
 
@@ -73,7 +93,12 @@ Quando a ingestão for criada, controller, aplicação e domínio devem depender
 | `src/create-app.ts` | Monta a aplicação HTTP para execução e testes com a mesma configuração. |
 | `src/events/dto/` | Contratos versionados e validação estrita dos eventos de entrada. |
 | `src/events/application/` | Caso de uso e porta para admissão idempotente desacoplada do broker. |
+| `src/events/queue/` | Adapter BullMQ que grava o envelope e fingerprint no job Redis usando `eventId` como `jobId`. |
 | `src/config/app-config.ts` | Valida e transforma variáveis de ambiente. |
 | `src/app.module.ts` | Registra controllers e middleware de contexto. |
 | `src/app.controller.ts` | Endpoint mínimo de health. |
 | `src/observability/` | Contexto assíncrono de requisição e logger estruturado. |
+
+## Registro de decisão: nuvem como desenho, não como requisito do portfólio
+
+**Decisão:** documentar uma estratégia plausível de implantação e escala em nuvem, sem provisionar recursos pagos neste projeto. **Motivo:** demonstrar compreensão de separação de serviços, escalabilidade independente, dependências compartilhadas e trade-offs operacionais sem criar custo recorrente desnecessário. **Revisão:** após workers, idempotência e observabilidade operacional, detalhar um caminho de produção com estimativas e requisitos explícitos antes de qualquer implantação.

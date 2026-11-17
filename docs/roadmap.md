@@ -20,7 +20,8 @@ As etapas são incrementais. Cada uma deve resultar em código, documentação, 
 - [x] Validar o limite no ponto exato de 256 KiB e acima dele.
 - [x] Definir `eventId` como identidade de idempotência e conflito para envelope diferente.
 - [x] Criar caso de uso e porta de admissão sem dependência do broker.
-- [ ] Definir duração da retenção idempotente e como a reserva será atômica com a publicação.
+- [ ] Definir duração da retenção idempotente e política de limpeza dos jobs.
+- [ ] Revisar o RPO Redis antes de prometer a aceitação como sem perda.
 - Publicar somente após confirmação durável da fila (depende da etapa 5).
 
 ## 4. Proteção de tráfego — planejado
@@ -29,11 +30,14 @@ As etapas são incrementais. Cada uma deve resultar em código, documentação, 
 - Definir chaves de limite, limites por rota e resposta `429`.
 - Decidir e documentar o comportamento quando Redis ficar indisponível.
 
-## 5. Fila e workers — planejado
+## 5. Fila e workers — em andamento
 
-- Adicionar BullMQ, retries com backoff, timeouts, dead-letter e concorrência limitada.
+- [x] Adicionar adapter BullMQ, fila Redis local com AOF e ID de job determinístico.
+- [ ] Definir retenção de deduplicação, RPO Redis e política de capacidade antes de habilitar processamento contínuo.
+- [ ] Implementar worker com retries, timeout, dead-letter e concorrência limitada.
 - Implementar idempotência no processamento e encerramento gracioso.
 - Definir compose para desenvolvimento local e instruções de operação.
+- Após concluir workers e idempotência, documentar estratégia de deploy e escala em AWS (ECS) e GCP, incluindo serviços separados para API/consumidores, Redis gerenciado, autoscaling, observabilidade e trade-offs. Manter implantação cloud fora do escopo do portfólio enquanto houver custo recorrente sem necessidade demonstrativa.
 
 ## 6. Persistência — em aberto
 
@@ -53,3 +57,4 @@ As etapas são incrementais. Cada uma deve resultar em código, documentação, 
 - Rever limites HTTP, timeouts, CORS, proxy, dependências e gestão de segredos.
 - Automatizar verificações de qualidade e segurança.
 - Documentar implantação, operação, recuperação e limites conhecidos.
+- Completar o desenho de produção em nuvem após fechar requisitos de RPO/RTO, retenção, capacidade, segurança e orçamento; não provisionar recursos pagos como requisito para concluir o portfólio.
