@@ -38,7 +38,7 @@ export class BullMqEventAdmissionAdapter implements EventAdmissionPort {
         {
           jobId: event.eventId,
           attempts: 5,
-          backoff: { type: 'exponential', delay: 1_000 },
+          backoff: { type: 'exponential', delay: 1_000, jitter: 0.5 },
         },
       );
 

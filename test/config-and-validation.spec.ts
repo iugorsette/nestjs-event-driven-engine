@@ -25,6 +25,7 @@ describe('application configuration', () => {
       environment: 'development',
       port: 3000,
       corsOrigins: [],
+      workerConcurrency: 5,
       redis: {
         host: 'localhost',
         port: 6379,
@@ -47,6 +48,7 @@ describe('application configuration', () => {
         environment: 'production',
         port: 8080,
         corsOrigins: ['https://console.example.com', 'http://localhost:3001'],
+        workerConcurrency: 5,
         redis: {
           host: 'redis.example.com',
           port: 6380,

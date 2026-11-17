@@ -11,6 +11,9 @@
     "test:redis": "tsc -p tsconfig.spec.json && node --test dist-test/test/integration/redis-admission.integration.spec.js",
     "start": "nest start --env-file .env",
     "start:dev": "nest start --watch --env-file .env",
+    "start:worker": "nest start --entryFile worker --env-file .env",
+    "start:worker:dev": "nest start --watch --entryFile worker --env-file .env",
+    "start:worker:prod": "node dist/worker.js",
     "start:prod": "node dist/main.js",
     "lint": "eslint \"{src,test}/**/*.ts\""
   },

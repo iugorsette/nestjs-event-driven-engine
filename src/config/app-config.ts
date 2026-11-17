@@ -7,6 +7,7 @@ export interface AppConfig {
   port: number;
   corsOrigins: string[];
   redis: RedisOptions;
+  workerConcurrency: number;
 }
 
 const validEnvironments: AppEnvironment[] = [
@@ -30,6 +31,20 @@ function parsePort(value: string | undefined): number {
   }
 
   return port;
+}
+
+function parseWorkerConcurrency(value: string | undefined): number {
+  if (value === undefined || value.trim() === '') return 5;
+  if (!/^\d+$/.test(value)) {
+    throw new Error('WORKER_CONCURRENCY must be an integer between 1 and 100.');
+  }
+
+  const concurrency = Number(value);
+  if (!Number.isSafeInteger(concurrency) || concurrency < 1 || concurrency > 100) {
+    throw new Error('WORKER_CONCURRENCY must be an integer between 1 and 100.');
+  }
+
+  return concurrency;
 }
 
 function parseCorsOrigins(value: string | undefined): string[] {
@@ -131,5 +146,6 @@ export function loadAppConfig(
     port: parsePort(environment.PORT),
     corsOrigins: parseCorsOrigins(environment.CORS_ORIGINS),
     redis: parseRedisUrl(environment.REDIS_URL, appEnvironment),
+    workerConcurrency: parseWorkerConcurrency(environment.WORKER_CONCURRENCY),
   };
 }
