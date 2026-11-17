@@ -39,22 +39,25 @@ Campos desconhecidos são rejeitados pela `ValidationPipe` global. Identidade do
 
 - `202 Accepted` só depois de a fila confirmar publicação durável.
 - Erro de validação deve identificar o campo sem ecoar segredos ou payloads sensíveis.
-- Repetição com a mesma chave de idempotência precisa ter resultado documentado e previsível.
+- `eventId` é a identidade estável de idempotência; não será necessário um segundo header `Idempotency-Key` no contrato inicial.
+- Reenvio do mesmo `eventId` com o mesmo envelope é duplicata e deve devolver a confirmação original sem publicar de novo.
+- Reenvio do mesmo `eventId` com conteúdo diferente é conflito HTTP `409` e não deve publicar.
 - Indisponibilidade da fila não pode ser respondida como aceitação bem-sucedida.
 
 ## Decisões em aberto
 
-- O limite atual é 256 KiB para o corpo JSON completo; revisar com payloads representativos e requisitos reais.
+- O limite atual é 256 KiB para o corpo JSON completo; o teste confirma o limite exato e uma requisição maior.
 - Autenticação, autorização por produtor e quotas.
 - Retenção e compatibilidade de versões do schema.
-- Usar `eventId`, `Idempotency-Key` ou ambos como chave de idempotência e definir conflito quando a mesma chave vier com conteúdo diferente.
-- Se idempotência será controlada na API, na fila, no consumidor ou em mais de uma camada.
+- Período de retenção das identidades aceitas; precisa cobrir a janela de retry/replay suportada pelo serviço.
+- Como persistir atomicamente identidade, fingerprint e publicação durável quando a fila for integrada.
 
 O DTO e o limite de corpo não criam uma rota. `POST /events` continua adiado até a camada de publicação poder confirmar aceitação durável; responder `202` antes disso criaria risco de perda de eventos.
 
 ## Critérios de conclusão
 
 - [x] DTO estrito e limite inicial de corpo publicados e cobertos por testes.
+- [x] Semântica de idempotência definida; fingerprint SHA-256 canônico implementado como primitiva pura.
 - [ ] Resposta HTTP vinculada à confirmação da fila.
-- [ ] Cobertura de duplicatas e indisponibilidade da fila.
+- [ ] Cobertura HTTP de duplicatas e indisponibilidade da fila.
 - Métricas/logs sem conteúdo sensível do evento.

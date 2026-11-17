@@ -60,6 +60,7 @@ Quando a ingestão for criada, controller, aplicação e domínio devem depender
 - Responder `202 Accepted` somente depois de a fila confirmar que a mensagem está durável.
 - Projetar consumidores para entrega pelo menos uma vez; não prometer processamento exatamente uma vez.
 - Tornar efeitos dos workers idempotentes para tolerar redelivery e retries.
+- Usar `eventId` como identidade estável do evento; comparar fingerprint SHA-256 do envelope canônico para distinguir retry idêntico de reutilização conflitante do ID.
 - Limitar concorrência e tamanho de payload para que a sobrecarga resulte em backpressure controlado.
 - Propagar IDs de correlação para fila e worker sem usar dados pessoais como identificador.
 - Manter readiness distinta de liveness quando a aplicação depender de Redis e banco.

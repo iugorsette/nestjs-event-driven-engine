@@ -17,8 +17,9 @@ As etapas são incrementais. Cada uma deve resultar em código, documentação, 
 ## 3. Contrato de ingestão — em andamento
 
 - [x] Definir envelope versionado, DTO estrito e limite inicial de corpo.
-- [ ] Validar o limite com payloads representativos e decidir se será configurável.
-- Estabelecer semântica de aceitação, duplicatas e chave de idempotência.
+- [x] Validar o limite no ponto exato de 256 KiB e acima dele.
+- [x] Definir `eventId` como identidade de idempotência e conflito para envelope diferente.
+- [ ] Definir duração da retenção idempotente e como a reserva será atômica com a publicação.
 - Publicar somente após confirmação durável da fila (depende da etapa 5).
 
 ## 4. Proteção de tráfego — planejado

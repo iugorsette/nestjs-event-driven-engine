@@ -14,9 +14,9 @@ npm run lint
 
 - Configuração: valores padrão, ambiente inválido, limites da porta e origens CORS fora do formato permitido.
 - Validação de DTO: transformação para a classe, rejeição de campos não permitidos e tipos inválidos.
-- Contrato de eventos: envelope válido, campos desconhecidos, versão e timestamp inválidos.
+- Contrato de eventos: envelope válido, campos desconhecidos, versão e timestamp inválidos, fingerprint e duplicatas/conflitos.
 - Aplicação HTTP real: resposta de `/health`, UUID de requisição e cabeçalhos Helmet.
-- Limite de corpo JSON: payloads acima de 256 KiB recebem `413 Payload Too Large`.
+- Limite de corpo JSON: exatamente 256 KiB é parseado; corpos maiores recebem `413 Payload Too Large`.
 
 Os testes HTTP sobem a aplicação em uma porta efêmera local. Em ambientes isolados, a execução precisa permitir bind de loopback.
 
