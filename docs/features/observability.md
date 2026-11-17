@@ -18,6 +18,7 @@ Permitir responder rapidamente se o sistema está aceitando trabalho, onde a lat
 - Tracing distribuído da requisição até a execução do worker.
 - Readiness que considera dependências necessárias; liveness separada.
 - Dashboards, alertas com limites e runbooks para saturação e falhas.
+- Integração com NestJS Observe para visualizar tráfego de desenvolvimento; usar credencial separada e rever envio de source context antes de ativar.
 
 ## Princípios
 

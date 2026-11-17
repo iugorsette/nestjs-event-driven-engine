@@ -14,12 +14,14 @@ npm run lint
 
 - Configuração: valores padrão, ambiente inválido, limites da porta e origens CORS fora do formato permitido.
 - Validação de DTO: transformação para a classe, rejeição de campos não permitidos e tipos inválidos.
+- Contrato de eventos: envelope válido, campos desconhecidos, versão e timestamp inválidos.
 - Aplicação HTTP real: resposta de `/health`, UUID de requisição e cabeçalhos Helmet.
+- Limite de corpo JSON: payloads acima de 256 KiB recebem `413 Payload Too Large`.
 
 Os testes HTTP sobem a aplicação em uma porta efêmera local. Em ambientes isolados, a execução precisa permitir bind de loopback.
 
 ## Limites conhecidos
 
-Ainda não há rota de ingestão, então os testes de DTO usam um DTO representativo diretamente com o mesmo `ValidationPipe` usado no bootstrap. Quando a rota de eventos for criada, adicionar testes para contrato, payload excessivo, autenticação, idempotência e indisponibilidade da fila.
+Ainda não há rota de ingestão, então os testes do envelope usam o mesmo `ValidationPipe` usado no bootstrap. Quando a rota de eventos for criada, adicionar testes HTTP para o contrato, autenticação, idempotência e indisponibilidade da fila.
 
 Não há cobertura de Redis, workers ou persistência porque esses componentes ainda não existem. Os testes não estabelecem um benchmark de throughput; performance será medida quando o pipeline estiver implementado.

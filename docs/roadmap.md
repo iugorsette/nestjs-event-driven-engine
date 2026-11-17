@@ -14,11 +14,12 @@ As etapas são incrementais. Cada uma deve resultar em código, documentação, 
 - Testes de configuração, DTO validation, bootstrap, endpoint de health, request ID e headers — implementado.
 - Separar liveness e readiness quando o serviço passar a depender de infraestrutura externa.
 
-## 3. Contrato de ingestão — planejado
+## 3. Contrato de ingestão — em andamento
 
-- Definir envelope versionado, limites e DTOs.
+- [x] Definir envelope versionado, DTO estrito e limite inicial de corpo.
+- [ ] Validar o limite com payloads representativos e decidir se será configurável.
 - Estabelecer semântica de aceitação, duplicatas e chave de idempotência.
-- Publicar somente após confirmação durável da fila.
+- Publicar somente após confirmação durável da fila (depende da etapa 5).
 
 ## 4. Proteção de tráfego — planejado
 
@@ -43,6 +44,7 @@ As etapas são incrementais. Cada uma deve resultar em código, documentação, 
 - Expor métricas de aceitação, fila, retries, falhas, latência e saturação.
 - Propagar contexto para workers e tracing distribuído.
 - Definir alertas, SLOs e procedimentos para dead-letter e indisponibilidade de dependências.
+- Integrar o SDK NestJS Observe: chave de desenvolvimento separada, módulo e hook de instrumentação, shutdown hooks, verificação de telemetria local e decisões registradas de privacidade/redaction.
 
 ## 8. Endurecimento e publicação — planejado
 

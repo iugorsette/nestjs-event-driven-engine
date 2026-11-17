@@ -8,7 +8,7 @@
 
 ## Planejado
 
-- [Ingestão de eventos](event-ingestion.md)
+- [Contrato de ingestão de eventos](event-ingestion.md) (DTO implementado; endpoint planejado)
 - [Rate limiting distribuído](rate-limiting.md)
 - [Fila e workers](queue-and-workers.md)
 - [Persistência](persistence.md)
