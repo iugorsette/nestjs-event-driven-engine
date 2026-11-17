@@ -1,10 +1,10 @@
 # High-Throughput Event-Driven Engine
 
-Um projeto incremental de um motor de processamento de eventos com NestJS e TypeScript. O foco é demonstrar decisões de engenharia para resiliência, segurança, observabilidade e processamento assíncrono.
+Um motor de processamento de eventos em construção com NestJS e TypeScript. O projeto documenta as decisões e limites de cada etapa para demonstrar engenharia voltada a resiliência, segurança, observabilidade e processamento assíncrono.
 
 ## Estado atual
 
-A base da API inclui bootstrap NestJS, endpoint `/health`, cabeçalhos Helmet, proteção HPP, validação global estrita e CORS por allowlist configurável. A configuração é validada antes de abrir a porta e os valores de `.env` são carregados na inicialização. Os logs são JSON por linha e cada requisição recebe um `x-request-id` gerado pelo servidor, incluído nos logs de início e conclusão. Ainda não há fila, Redis, persistência ou rate limiting; essas capacidades entram em etapas posteriores, com decisões e limites documentados junto ao código.
+A base atual inclui o bootstrap NestJS, endpoint `/health`, configurações defensivas de HTTP, validação de ambiente e logs JSON com correlação por requisição. O processamento de eventos, filas, Redis e persistência ainda serão implementados.
 
 ## Requisitos
 
@@ -30,4 +30,12 @@ Verifique `http://localhost:3000/health`; a resposta esperada é `{"status":"ok"
 | `CORS_ORIGINS` | Origens HTTP(S) exatas, separadas por vírgula e sem caminho | vazio |
 
 Se `CORS_ORIGINS` estiver vazio, CORS fica desativado. Valores inválidos interrompem a inicialização com uma mensagem estruturada. Em produção, configure somente origens confiáveis.
+
+## Documentação
+
+- [Visão geral e mapa da documentação](docs/README.md)
+- [Arquitetura e decisões técnicas](docs/architecture.md)
+- [Modelo de segurança e estado das proteções](docs/security.md)
+- [Roadmap de implementação](docs/roadmap.md)
+- [Catálogo de features atuais e planejadas](docs/features/README.md)
 
