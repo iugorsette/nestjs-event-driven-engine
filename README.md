@@ -4,7 +4,7 @@ Um projeto incremental de um motor de processamento de eventos com NestJS e Type
 
 ## Estado atual
 
-A base da API inclui bootstrap NestJS, endpoint `/health`, cabeçalhos Helmet, proteção HPP, validação global estrita e CORS por allowlist configurável. A configuração é validada antes de abrir a porta e os valores de `.env` são carregados na inicialização. Ainda não há fila, Redis, persistência ou rate limiting; essas capacidades entram em etapas posteriores, com decisões e limites documentados junto ao código.
+A base da API inclui bootstrap NestJS, endpoint `/health`, cabeçalhos Helmet, proteção HPP, validação global estrita e CORS por allowlist configurável. A configuração é validada antes de abrir a porta e os valores de `.env` são carregados na inicialização. Os logs são JSON por linha e cada requisição recebe um `x-request-id` gerado pelo servidor, incluído nos logs de início e conclusão. Ainda não há fila, Redis, persistência ou rate limiting; essas capacidades entram em etapas posteriores, com decisões e limites documentados junto ao código.
 
 ## Requisitos
 

@@ -6,10 +6,13 @@ import helmet from 'helmet';
 import hpp from 'hpp';
 import { AppModule } from './app.module';
 import { loadAppConfig } from './config/app-config';
+import { StructuredLogger } from './observability/structured-logger';
+
+const logger = new StructuredLogger();
 
 async function bootstrap(): Promise<void> {
   const config = loadAppConfig();
-  const app = await NestFactory.create(AppModule, { rawBody: false });
+  const app = await NestFactory.create(AppModule, { logger });
 
   app.use(helmet());
   app.use(hpp());
@@ -34,8 +37,6 @@ async function bootstrap(): Promise<void> {
 
 void bootstrap().catch((error: unknown) => {
   const message = error instanceof Error ? error.message : 'Unknown startup error';
-  process.stderr.write(
-    `${JSON.stringify({ level: 'fatal', event: 'startup.failed', message })}\n`,
-  );
+  logger.fatal({ event: 'startup.failed', message });
   process.exitCode = 1;
 });
