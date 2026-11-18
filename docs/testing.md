@@ -22,7 +22,7 @@ npm run lint
 
 Os testes HTTP sobem a aplicação em uma porta efêmera local. Em ambientes isolados, a execução precisa permitir bind de loopback.
 
-O adapter usa um fake na suíte padrão para manter `npm test` independente de infraestrutura. A suíte de integração usa Redis real para confirmar uma requisição HTTP na fila, duplicata, conflito e `429` com `Retry-After`, além de repetir o cenário básico de persistência/idempotência do adapter BullMQ.
+O adapter usa um fake na suíte padrão para manter `npm test` independente de infraestrutura. A suíte de integração usa Redis real para confirmar uma requisição HTTP na fila, duplicata, conflito e `429` com `Retry-After`, além de testar incrementos concorrentes, expiração de janela e fail-closed do storage quando Redis cai depois do startup.
 
 Para executá-la, suba o Redis local e rode `npm run test:redis`.
 
@@ -36,6 +36,6 @@ docker compose down
 
 Os testes HTTP abrem a aplicação em uma porta efêmera de loopback; em ambientes isolados, a execução precisa permitir bind local. A suíte de integração requer também o Redis do Compose. A falha do storage do limitador é coberta em HTTP por um fake determinístico; ainda falta reproduzir indisponibilidade real do Redis nesse cenário.
 
-Ainda faltam testes diretos de expiração e concorrência do script Lua sob Redis real. A suíte não cobre rotação de credenciais nem a política de IP atrás do proxy de produção. O handler do worker é demonstrativo, sem persistência de domínio. A suíte não estabelece benchmark de throughput; performance será medida quando o processamento real estiver implementado.
+Ainda falta validar a política de IP atrás do proxy de produção e rotação de credenciais. O handler do worker é demonstrativo, sem persistência de domínio. A suíte não estabelece benchmark de throughput; performance será medida quando o processamento real estiver implementado.
 
-O script Lua é copiado para `dist` pelo Nest CLI. A cobertura de integração atual confirma o limite `429` e `Retry-After`; build e lint sozinhos não validam a semântica do script.
+O script Lua é copiado para `dist` pelo Nest CLI. A integração valida limite `429`, `Retry-After`, incremento concorrente, expiração da janela e fail-closed após perda do Redis. Build e lint sozinhos não validam a semântica do script.

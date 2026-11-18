@@ -8,9 +8,9 @@
 
 ## Em implementação
 
-- [Contrato de ingestão de eventos](event-ingestion.md) (`POST /events` implementado; cobertura HTTP e persistência pendentes)
+- [Contrato de ingestão de eventos](event-ingestion.md) (`POST /events`, cobertura HTTP e integração básica com Redis implementados; retenção durável pendente)
 - [Fila e workers](queue-and-workers.md) (adapter e consumidor implementados; DLQ/idempotência de negócio pendentes)
-- [Rate limiting distribuído](rate-limiting.md) (limites iniciais implementados; proxy confiável e cobertura HTTP pendentes)
+- [Rate limiting distribuído](rate-limiting.md) (limites e testes do storage Lua implementados; proxy confiável e rotação de credenciais pendentes)
 
 ## Planejado
 

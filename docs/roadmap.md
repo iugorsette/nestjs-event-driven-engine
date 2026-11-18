@@ -32,7 +32,8 @@ As etapas são incrementais. Cada uma deve resultar em código, documentação, 
 - [x] Aplicar limite por IP à rota de ingestão (30 chamadas/60s e bloqueio por 60s) usando storage Redis compartilhado e resposta `429`.
 - [x] Falhar fechado com `503` se o storage Redis do rate limit estiver indisponível.
 - [x] Cobrir o `429` HTTP, o fail-closed do limiter e o fluxo Redis real de ingestão em integração.
-- [ ] Validar IP real atrás do proxy de produção, definir política de rotação de credenciais e testar expiração/concorrência do script Lua contra Redis.
+- [x] Testar expiração da janela, concorrência e fail-closed do script Lua contra Redis real.
+- [ ] Validar IP real atrás do proxy de produção e definir política de rotação de credenciais.
 
 ## 5. Fila e workers — em andamento
 
@@ -64,3 +65,9 @@ As etapas são incrementais. Cada uma deve resultar em código, documentação, 
 - Automatizar verificações de qualidade e segurança.
 - Documentar implantação, operação, recuperação e limites conhecidos.
 - Completar o desenho de produção em nuvem após fechar requisitos de RPO/RTO, retenção, capacidade, segurança e orçamento; não provisionar recursos pagos como requisito para concluir o portfólio.
+
+## 9. Localização da documentação — última etapa
+
+- Migrar a documentação principal para inglês, incluindo README, arquitetura, segurança, testes e guias de features.
+- Manter a versão em português brasileiro em `docs/pt-BR/`, com links entre os idiomas.
+- Atualizar as duas versões juntas quando decisões ou funcionalidades mudarem; manter essa etapa para depois da implementação e revisão das etapas anteriores.

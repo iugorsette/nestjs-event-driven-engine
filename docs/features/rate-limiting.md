@@ -30,7 +30,7 @@ Há, porém, um ponto concreto a verificar antes de adotar a versão `1.2.0`: o 
 
 Neste portfólio, mantivemos o adapter próprio por dois motivos limitados: estudar e mostrar a operação atômica em Lua, e controlar o comportamento de bloqueio/fail-closed deste projeto. O tratamento de Redis indisponível como `503` também é uma política local que pode ser implementada por wrapper/filtro ao usar o pacote; não é, sozinho, motivo suficiente para manter um storage inteiro próprio. O custo da escolha própria é nosso: compatibilidade com `@nestjs/throttler`, tratamento de erros, manutenção do script e testes em cada versão de Redis suportada.
 
-**Decisão revisável:** a integração atual valida o `429` e `Retry-After` com Redis real; ainda faltam regressões diretas para concorrência, expiração e indisponibilidade real do Redis. Antes de usar qualquer uma das implementações em produção, cobrir esses cenários. Se uma versão do pacote passar esses cenários e aceitar a política fail-closed desejada, preferi-la reduz código próprio; se não passar, manter ou contribuir uma correção específica. A versão atual do adapter é uma decisão didática para o portfólio, não uma alegação de superioridade geral.
+**Decisão revisável:** a integração atual valida `429`, `Retry-After`, incrementos concorrentes, expiração da janela e fail-closed quando Redis cai após o startup. Antes de usar qualquer uma das implementações em produção, adicionar teste de failover e validar os limites de capacidade. Se uma versão do pacote passar esses cenários e aceitar a política fail-closed desejada, preferi-la reduz código próprio; se não passar, manter ou contribuir uma correção específica. A versão atual do adapter é uma decisão didática para o portfólio, não uma alegação de superioridade geral.
 
 **Limite da decisão:** atomicidade reduz condições de corrida no contador; não prova capacidade, durabilidade, disponibilidade ou segurança completa do serviço. A frase “não falha sob concorrência” seria forte demais. O código e a configuração de Redis ainda precisam de testes e operação observada.
 
@@ -47,4 +47,4 @@ Neste portfólio, mantivemos o adapter próprio por dois motivos limitados: estu
 - Respostas e headers documentados.
 - [x] Cobertura HTTP com storage fake para autenticação, limite excedido, duplicatas, fila indisponível e fail-closed `503`.
 - [x] Validar limite `429` e header `Retry-After` em integração HTTP com Redis real.
-- [ ] Validar expiração, concorrência e indisponibilidade real do Redis contra o storage em integração.
+- [x] Validar expiração, concorrência e fail-closed após perda de Redis contra o storage em integração.
